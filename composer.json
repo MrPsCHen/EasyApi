@@ -1,7 +1,7 @@
 {
     "name": "doit/easyapi",
     "type": "library",
-    "description": "the my first package",
+    "description": "Automatic application program interface",
 	"homepage": "http://www.cpspt.com/",
     "license": "MIT",
     "authors": [
