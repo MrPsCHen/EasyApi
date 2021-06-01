@@ -1,12 +1,11 @@
 {
     "name": "doit/easyapi",
-    "type": "library",
     "description": "Automatic application program interface",
-	"homepage": "http://www.cpspt.com/",
+    "type": "library",
     "license": "MIT",
     "authors": [
         {
-            "name": "cps",
+            "name": "Chen Ps",
             "email": "cps_1993@126.com"
         }
     ],
@@ -19,7 +18,6 @@
         "psr-4": {
             "EasyApi\\": "src/EasyApi"
         }
-    }
-	
-	
+    },
+    "minimum-stability": "dev"
 }
