@@ -1,32 +1,25 @@
 {
-	"packageNames":["doit/easyapi"],
-	"results":[
-		{
-			"name": "doit/easyapi",
-			"description": "the my first package",
-			"type": "library",
-			"homepage": "http://www.cpspt.com/",
-			"license": "MIT",
-			"authors": [
-				{
-					"name": "cps",
-					"email": "cps_1993@126.com"
-				}
-			],
-			"require": {
-				"php": ">=7.0.0",
-				"topthink/framework": "^6.0.0",
-				"topthink/think-orm": "^2.0"
-			},
-			"autoload": {
-				"psr-4": {
-					"EasyApi\\": "src/EasyApi"
-				}
-			}
-		}
-	],
-    
-    
+    "name": "doit/easyapi",
+    "type": "library",
+    "description": "the my first package",
+	"homepage": "http://www.cpspt.com/",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "cps",
+            "email": "cps_1993@126.com"
+        }
+    ],
+	"require": {
+        "php": ">=7.0.0",
+        "topthink/framework": "^6.0.0",
+        "topthink/think-orm": "^2.0"
+    },
+	"autoload": {
+        "psr-4": {
+            "EasyApi\\": "src/EasyApi"
+        }
+    }
 	
 	
 }
