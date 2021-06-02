@@ -17,15 +17,14 @@ $user = new app_user();
 $user->ploy('label','app_','label_id');
 
 //
-////查询数据
+//查询数据
 $user->select();
-print_r($user->getBack());
+//print_r($user->getBack());
 //
-////条件查询
-$user->autoParam(['status'=>2]);
+//条件查询
+$user->autoParam();
 //
 $user->select();
 
 //聚合查找
-
-print_r($user->find());
+$user->autoParam(['username'=>2,'id'=>4]);

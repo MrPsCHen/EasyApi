@@ -4,6 +4,7 @@
 namespace EasyApi;
 
 
+use think\db\BaseQuery;
 use think\facade\Db;
 
 class Model
@@ -11,20 +12,21 @@ class Model
     protected string $table     = '';
     protected string $prefix    = '';
 
-    protected array     $tables         = [];   //表对象
-    protected int       $page           = 1;    //页码
-    protected int       $limit          = 20;   //条数
-    protected           $cursor         = null; //游标对象
-    protected ?array    $back           = [];   //返回对象
-    protected array     $_ploy          = [];   //聚合参数
-    protected array     $_extra         = [];   //扩展参数
-    protected array     $_extra_arr     = [];
+    protected array         $tables         = [];   //表对象
+    protected int           $page           = 1;    //页码
+    protected int           $limit          = 20;   //条数
+    protected     $cursor         = null; //游标对象
+    protected ?array        $back           = [];   //返回对象
+    protected array         $_ploy          = [];   //聚合参数
+    protected array         $_extra         = [];   //扩展参数
 
-    protected array     $full_field     = [];
-    protected array     $cursor_like    = [];
-    protected array     $cursor_in      = [];
-    protected array     $cursor_where   = [];
-    protected array     $cursor_join    = [];
+    protected array         $full_field     = [];
+    protected array         $cursor_like    = [];
+    protected array         $cursor_in      = [];
+    protected array         $cursor_where   = [];
+    protected array         $cursor_join    = [];
+    protected string        $error_message  = '';
+    protected array         $param          = [];
 
     public function __construct(string $table = '',string $prefix = '')
     {
@@ -85,19 +87,29 @@ class Model
         $this->cursor->update($array);
     }
 
-    public function delete()
+    public function delete(?array $array = [])
     {
-
+        $this->setMaster();
+        $where = $this->_format(array_merge($array,$this->param));
+        $this->cursor->where($where);
+        return $this->cursor->delete();
     }
 
     public function insert()
     {
-
+        $this->setMaster();
+        return $this->cursor->inster($this->param);
     }
 
     public function save()
     {
-
+        $this->setMaster();
+        $table = $this->choseTable();
+        if(isset($this->param[$table->getPrimary()])){
+            return $this->cursor->where([$table->getPrimary()=>[$this->param[$table->getPrimary()]]])->update($this->param);
+        }else{
+            return $this->cursor->insert($this->param);
+        }
     }
 
 
@@ -172,17 +184,17 @@ class Model
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 //工具方法
-    public function autoParam(array $array)
+    public function autoParam(?array $array = [])
     {
         if(isset($array['page'])){$this->page = $array['page']; unset($array['page']);}
         if(isset($array['limit'])){$this->limit = $array['limit']; unset($array['limit']);}
         if(isset($array['size'])){$this->limit = $array['size']; unset($array['size']);}
-
+        $this->param = $array;
         $this->cursor_where = $array;
     }
     public function error()
     {
-
+        return $this->error_message;
     }
 
     public function display(array $filed,string $table = '')
@@ -218,22 +230,22 @@ class Model
         return $this;
     }
 
-    public function chooseTable(string $table_name = ''){
-        if(empty($table_name))return reset($this->tables);
-        return $this->tables[$table_name];
-    }
-
     public function setMaster(string $table = ''){
-        print_r($this->tables);
-        exit;
+
         if(isset($this->tables[$table])){
             $table = $this->tables[$table];
         }else{
             $table = reset($this->tables);
         }
-
         $this->cursor = Db::table($table->getTable());
+    }
 
+    public function choseTable(?string $table = ''){
+        if(isset($this->tables[$table])){
+            return $this->tables[$table];
+        }else{
+            return reset($this->tables);
+        }
     }
 
     /**
@@ -338,6 +350,8 @@ class Model
             $this->cursor->join($key,$condition,$value[1]);
         }
     }
+
+
     protected function _extra_join(bool $flag_find = false){
         $table      = reset($this->tables);
         foreach ($this->_extra as $key=>$value){
@@ -372,6 +386,23 @@ class Model
 
             }
         }
+    }
+
+    /**
+     * @param array $array 格式化参数
+     */
+    protected function _format(array $array){
+        $arr = [];
+        foreach ($array as $key=>$val)
+        {
+            if(is_string($val) || is_numeric($val)){
+                $arr[] = [$key,'=',$val];
+            }else{
+                $arr[] = $val;
+            }
+
+        }
+        return $arr;
     }
 
 
