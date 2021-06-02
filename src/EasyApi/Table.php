@@ -2,6 +2,7 @@
 
 
 namespace EasyApi;
+use think\db\exception\DbException;
 use think\facade\Db;
 
 class Table
@@ -29,17 +30,25 @@ class Table
 
     /**
      * @return void 解析表结构
+     * @throws DbException
      */
     public function structure()
     {
         if (!empty($this->table))
-            foreach (Db::query('SHOW FULL COLUMNS FROM ' . $this->getTable()) as $k => $v) {
-                $this->field_full[] = $v['Field'];
-                $v['Key'] === 'PRI' && $this->primary = $v['Field'];
-                $v['Key'] === 'UNI' && $this->field_unique[] = $v['Field'];
-                $v['Null'] === 'NO' && $v['Key'] !== 'PRI' && $this->field_not_null[] = $v['Field'];
+        {
 
+            try {
+                foreach (Db::query('SHOW FULL COLUMNS FROM ' . $this->getTable()) as $k => $v) {
+                    $this->field_full[] = $v['Field'];
+                    $v['Key'] === 'PRI' && $this->primary = $v['Field'];
+                    $v['Key'] === 'UNI' && $this->field_unique[] = $v['Field'];
+                    $v['Null'] === 'NO' && $v['Key'] !== 'PRI' && $this->field_not_null[] = $v['Field'];
+
+                }
+            }catch (DbException $e){
+//                throw new DbException('数据库或数据表不存在');
             }
+        }
     }
 
 
@@ -67,6 +76,7 @@ class Table
     public function outFiled(bool $field_prefix = true)
     {
         $back = [];
+
         foreach ($this->field_full as $key => $val) {
             if(in_array($val,$this->filter_arr))continue;
             if(!empty($this->display_arr) && !in_array($val,$this->display_arr))continue;
@@ -121,6 +131,24 @@ class Table
     {
         return $this->field_full;
     }
+
+    /**
+     * @return array
+     */
+    public function getDisplayArr(): array
+    {
+        return $this->display_arr;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFilterArr(): array
+    {
+        return $this->filter_arr;
+    }
+
+
 
 
 
