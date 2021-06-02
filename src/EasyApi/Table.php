@@ -7,18 +7,18 @@ use think\facade\Db;
 
 class Table
 {
-    protected string $table = '';//表名
-    protected string $prefix = '';//表前缀
-    protected string $primary = '';//主键字段
-    protected array $field_full = [];//全部字段
-    protected array $field_unique = [];//唯一字段
-    protected array $field_not_null = [];//唯一字段
+    protected string    $table          = '';//表名
+    protected string    $prefix         = '';//表前缀
+    protected string    $primary        = '';//主键字段
+    protected array     $field_full     = [];//全部字段
+    protected array     $field_unique   = [];//唯一字段
+    protected array     $field_not_null = [];//唯一字段
 
 
-    protected string $extra_alias = '';//别名
-    protected array $alias = [];//字段别名
-    protected array $display_arr = [];//显示字段
-    protected array $filter_arr = [];//过滤字段
+    protected string    $extra_alias    = '';//别名
+    protected array     $alias          = [];//字段别名
+    protected array     $display_arr    = [];//显示字段
+    protected array     $filter_arr     = [];//过滤字段
 
 
     public function __construct(string $table, string $prefix = '')
