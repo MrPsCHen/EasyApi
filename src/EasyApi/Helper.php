@@ -6,7 +6,7 @@ namespace EasyApi;
 
 class Helper
 {
-    public static $CODE = 200;
+    public static int $CODE = 200;
     public static $MSG  = null;
     public static $DATA = null;
 

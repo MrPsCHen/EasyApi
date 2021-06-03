@@ -5,6 +5,7 @@ namespace EasyApi;
 
 
 use think\db\BaseQuery;
+use think\db\Raw;
 use think\facade\Db;
 
 class Model
@@ -30,17 +31,19 @@ class Model
 
     public function __construct(string $table = '',string $prefix = '')
     {
-
         if(empty($prefix.$table)){
             if(empty($this->table.$this->prefix)){
                 $table  = get_class($this);
+                $table  = basename(str_replace('\\', '/', $table));
             }else{
                 $table  = $this->table;
                 $prefix = $this->prefix;
             }
         }
         $this->table($table,$prefix);
-        $this->setMaster();
+        $this->cursor = Db::table($prefix.$table);
+        print_r($this->cursor->select());
+        exit;
     }
 
     public function table(string $table,string $prefix = '')
@@ -57,7 +60,6 @@ class Model
         $this->_join();
         $this->_decorate();
         $this->_decorate_prefix();
-
         $this->cursor->page($this->page,$this->limit);
         $this->cursor->where($this->cursor_where);
         $this->back = $this->cursor->select()->toArray();
@@ -116,9 +118,18 @@ class Model
 
 /*--------------------------------------------------------------------------------------------------------------------*/
 //语句修饰方法
-    public function order()
-    {
 
+    /**
+     * 指定排序 order('id','desc') 或者 order(['id'=>'desc','create_time'=>'desc'])
+     * @access public
+     * @param string|array|Raw $field 排序字段
+     * @param string           $order 排序
+     * @return $this
+     */
+    public function order($field, string $order = '')
+    {
+        $this->cursor->order($field,$order);
+        return $this;
     }
 
     public function where(?array $array)
