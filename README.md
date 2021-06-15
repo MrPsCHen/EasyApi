@@ -5,3 +5,5 @@ the easy voluntarily application programming interface
 使用说明:
 1.模型名称需要和数据表名对应（考虑前缀问题，可提前做静态方法配置）
 2.需要继承控制器
+###
+	开工
