@@ -13,8 +13,6 @@ class Table
     protected array     $field_full     = [];//全部字段
     protected array     $field_unique   = [];//唯一字段
     protected array     $field_not_null = [];//唯一字段
-
-
     protected string    $extra_alias    = '';//别名
     protected array     $alias          = [];//字段别名
     protected array     $display_arr    = [];//显示字段
@@ -78,9 +76,15 @@ class Table
         $back = [];
 
         foreach ($this->field_full as $key => $val) {
+            //过滤字段
             if(in_array($val,$this->filter_arr))continue;
+            //显示字段
             if(!empty($this->display_arr) && !in_array($val,$this->display_arr))continue;
-            $field_name = in_array($val,$this->alias)?$this->alias[$val]:"{$this->table}_{$val}";
+
+            //别名判断
+            $field_name = isset($this->alias[$key])?$this->alias[$val]:"{$this->table}_{$val}";
+            $field_name = isset($this->alias[$this->table.'_'.$val])?$this->alias[$this->table.'_'.$val]:$field_name;
+
             $alias = isset($this->alias[$val]) ? " AS `{$this->alias[$val]}`" : " AS `{$field_name}`";
             $back[$field_prefix?$field_name:$val] = "`{$this->getTable()}`.`{$val}`" . ($field_prefix ? $alias : "");
         }
@@ -147,9 +151,6 @@ class Table
     {
         return $this->filter_arr;
     }
-
-
-
 
 
 
