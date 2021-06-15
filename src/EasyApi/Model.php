@@ -7,9 +7,8 @@ namespace EasyApi;
 use think\db\BaseQuery;
 use think\db\Raw;
 use think\facade\Db;
-use function Couchbase\defaultDecoder;
 
-class Model implements \EasyApi\interFaces\Model
+class Model
 {
     protected string $table     = '';
     protected string $prefix    = '';
@@ -17,10 +16,11 @@ class Model implements \EasyApi\interFaces\Model
     protected array         $tables         = [];   //表对象
     protected int           $page           = 1;    //页码
     protected int           $limit          = 20;   //条数
-    protected $cursor                       = null; //游标对象
+    protected     $cursor         = null; //游标对象
     protected ?array        $back           = [];   //返回对象
     protected array         $_ploy          = [];   //聚合参数
     protected array         $_extra         = [];   //扩展参数
+
     protected array         $full_field     = [];
     protected array         $cursor_like    = [];
     protected array         $cursor_in      = [];
@@ -28,10 +28,6 @@ class Model implements \EasyApi\interFaces\Model
     protected array         $cursor_join    = [];
     protected string        $error_message  = '';
     protected array         $param          = [];
-    /**
-     * @var mixed
-     */
-    protected ?Table        $cursor_table   = null;
 
     public function __construct(string $table = '',string $prefix = '')
     {
@@ -47,6 +43,8 @@ class Model implements \EasyApi\interFaces\Model
         $this->table($table,$prefix);
         $this->cursor = Db::table($prefix.$table);
         return $this;
+//        print_r($this->cursor->select());
+//        exit;
     }
 
     public function table(string $table,string $prefix = '')
@@ -67,11 +65,11 @@ class Model implements \EasyApi\interFaces\Model
         $this->cursor->where($this->cursor_where);
         $this->back = $this->cursor->select()->toArray();
         $this->_extra_join();
-
         return $this;
     }
     public function find()
     {
+        $this->outFiledFull();
         $this->_join();
         $this->_decorate();
         $this->_decorate_prefix();
@@ -79,6 +77,7 @@ class Model implements \EasyApi\interFaces\Model
         $this->back = $this->cursor->find();
         $this->_extra_join(true);
         return $this->back;
+
     }
 
     public function count(){
@@ -116,17 +115,6 @@ class Model implements \EasyApi\interFaces\Model
         }
     }
 
-    public function fetchSql(){
-        $this->outFiledFull();
-        $this->_join();
-        $this->_decorate();
-        $this->_decorate_prefix();
-        $this->cursor->page($this->page,$this->limit);
-        $this->cursor->where($this->cursor_where);
-        $this->cursor->fetchSql();
-        return $this->cursor->fetchSql();
-    }
-
 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -145,16 +133,9 @@ class Model implements \EasyApi\interFaces\Model
         return $this;
     }
 
-    public function where(?array $array,?string $table_name = null)
+    public function where(?array $array)
     {
-        $table = $this->choseTable($table_name);
-        !($table instanceof Table) && $table = $this->cursor_table;
-        //为键名添加前缀
-        foreach ($array as $key=>$value){
-            $array[$table->getTable().'.'.$key] = $value;
-            unset($array[$key]);
-        }
-        $this->cursor_where = $array;
+        $this->cursor->where($array);
         return $this;
     }
 
@@ -197,16 +178,7 @@ class Model implements \EasyApi\interFaces\Model
 /*--------------------------------------------------------------------------------------------------------------------*/
 //聚合查询
 
-    /**
-     * 聚合方法
-     * @param string $table 聚合表，不带前缀
-     * @param string $prefix 聚合表前缀，没有不填
-     * @param string $contact_filed 主表字段，默认对应聚合表主键
-     * @param string $join_type 聚合类型 LEFT|INNER|RIGHT
-     * @param bool $master 是否主表字段，影响[$contact_file]表现，附表字段查询主表主键 default:true
-     * @return Table
-     */
-    public function ploy(string $table,string $prefix,string $contact_filed,string $join_type = \EasyApi\interFaces\Model::JOIN_LEFT,bool $master = true):Table
+    public function ploy(string $table,string $prefix,string $contact_filed,string $join_type = 'LEFT',bool $master = true)
     {
         $this->_ploy[$prefix.$table] = [$contact_filed,$join_type,$master];
         !isset($this->tables[$prefix.$table])&& $this->tables[$prefix.$table] = new Table($table,$prefix);
@@ -277,11 +249,11 @@ class Model implements \EasyApi\interFaces\Model
         }else{
             $table = reset($this->tables);
         }
-        $this->cursor_table = $table;
         $this->cursor = Db::table($table->getTable());
     }
 
-    public function choseTable(?string $table = ''){
+    public function choseTable(?string $table = ''):Table
+    {
         if(isset($this->tables[$table])){
             return $this->tables[$table];
         }else{
@@ -296,15 +268,6 @@ class Model implements \EasyApi\interFaces\Model
     {
         return $this->back;
     }
-
-    /**
-     * @return mixed
-     */
-    public function getCursorTable()
-    {
-        return $this->cursor_table;
-    }
-
 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -357,7 +320,6 @@ class Model implements \EasyApi\interFaces\Model
         $table = reset($this->tables);
 
         $back = $table->outFiled(false);
-
         foreach ($this->_ploy as $k=>$v){
             $back = array_merge($back,$this->tables[$k]->outFiled());
         }
@@ -455,6 +417,11 @@ class Model implements \EasyApi\interFaces\Model
         }
         return $arr;
     }
+
+
+
+
+
 
 
 

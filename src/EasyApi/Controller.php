@@ -6,40 +6,51 @@ namespace EasyApi;
 
 class Controller
 {
+    protected ?Model    $model  = null;
+    protected array     $param  = [];
+    protected string    $path   = '';
+    protected           $back;
 
-
-    /**
-     * @var array|mixed|null
-     */
-    private $param;
 
     public function __construct()
     {
 
-        if(class_exists('request'))$this->param = request()->param();
     }
 
-    public function implant(Model $model = null)
-    {
+    public function implant(Model $model = null){
 
     }
-
 
     /**
-     * @param array $array
+     * @param Model $model
      */
-    public function required(array $array = [])
+    public function setModel(Model $model): Model
     {
-        foreach ($array as $key=>$val){
-            //字符串
-            if(is_string($key)&&!is_numeric($key)){
-                if(!isset($this->param[$key]))response()->data(Helper::fatal('字段不能为空'))->send();
-                exit;
-            }else{
-                if(!isset($this->param[$val]))response()->data(Helper::fatal('字段不能为空'))->send();
-                exit;
-            }
-        }
+        return $this->model = $model;
+    }
+/*--------------------------------------------------------------------------------------------------------------------*/
+//常用方法
+
+    public function show()
+    {
+
+        $this->model->select();
+        return $this->model->getBack();
+    }
+
+    public function save()
+    {
+
+    }
+
+    public function del()
+    {
+
+    }
+
+    public function view()
+    {
+
     }
 
 
@@ -48,20 +59,14 @@ class Controller
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*--------------------------------------------------------------------------------------------------------------------*/
+//辅助方法
+    /**
+     * 查找类名作为模型的名称
+     */
+    protected function scoutClassName(){
+        $class = basename(str_replace('\\', '/', get_class($this)));
+        return class_exists($class)?$class:false;
+    }
 
 }
