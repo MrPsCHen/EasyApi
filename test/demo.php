@@ -1,15 +1,5 @@
 <?php
-
-
-
-
-var_dump(is_string("0")&&!is_numeric("0"));
-
-
-
-
-
-exit;
+//namespace xxx;
 use think\facade\Db;
 include "./../vendor/autoload.php";
 
@@ -23,20 +13,19 @@ class app_user extends \EasyApi\Model{}
 //查询表
 $user = new app_user();
 
+
 //聚合表
-$user->ploy('group','app_','group_id')->setAlias(['group_name'=>'name']);
-//查询数据
-$user->where(['name'=>'管理员组'],'app_group');
-print_r($user->select()->getBack());
-
-
-
-//print_r($user->getBack());
-
-//条件查询
-//$user->autoParam();
+$user->ploy('label','app_','label_id');
 //
+////
+////查询数据
+$user->select();
+////print_r($user->getBack());
+////
+////条件查询
+//$user->autoParam();
+////
 //$user->select();
-
-//聚合查找
+//
+////聚合查找
 //$user->autoParam(['username'=>2,'id'=>4]);
