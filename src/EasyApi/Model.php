@@ -39,12 +39,15 @@ class Model
                 $table  = $this->table;
                 $prefix = $this->prefix;
             }
+
+            if(empty($prefix) && function_exists('env')){
+                $prefix = env('DATABASE.PREFIX');
+
+            }
         }
         $this->table($table,$prefix);
         $this->cursor = Db::table($prefix.$table);
         return $this;
-//        print_r($this->cursor->select());
-//        exit;
     }
 
     public function table(string $table,string $prefix = '')
@@ -62,6 +65,7 @@ class Model
         $this->_decorate();
         $this->_decorate_prefix();
         $this->cursor->page($this->page,$this->limit);
+
         $this->cursor->where($this->cursor_where);
         $this->back = $this->cursor->select()->toArray();
         $this->_extra_join();
@@ -104,14 +108,28 @@ class Model
         return $this->cursor->inster($this->param);
     }
 
-    public function save()
+    public function save(array $param = [])
     {
+
+        $this->outFiledFull();
+        //判断参数
+        if(empty($param))$param = $this->param;
+
+
+        if(!$this->filedVerifier($param)){
+            dd($this->error_message);
+            return false;
+        }
+
+
         $this->setMaster();
-        $table = $this->choseTable();
         if(isset($this->param[$table->getPrimary()])){
             return $this->cursor->where([$table->getPrimary()=>[$this->param[$table->getPrimary()]]])->update($this->param);
         }else{
-            return $this->cursor->insert($this->param);
+
+
+            $result = $this->cursor->insert($this->param);
+            return ;
         }
     }
 
@@ -203,6 +221,7 @@ class Model
         if(isset($array['size'])){$this->limit = $array['size']; unset($array['size']);}
         $this->param = $array;
         $this->cursor_where = $array;
+
     }
     public function error()
     {
@@ -314,7 +333,7 @@ class Model
     }
 
 
-    //
+    //导出字段
     protected function outFiled():array
     {
         $table = reset($this->tables);
@@ -416,6 +435,33 @@ class Model
 
         }
         return $arr;
+    }
+
+    /**
+     * 字段数据验证
+     */
+    protected function filedVerifier(&$param = null)
+    {
+
+
+
+        foreach ($param as $key =>$value){
+            if(isset($this->full_field[$key])){
+                
+                if(($this->choseTable($this->full_field[$key])->filedVerifier($key,$value))===true){
+
+                }else{
+                    $this->error_message  = $this->choseTable($this->full_field[$key])->getErrorMessage();
+                    return false;
+                }
+
+
+            }else{
+
+                unset($param[$key]);
+            }
+        }
+        return true;
     }
 
 

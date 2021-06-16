@@ -13,12 +13,16 @@ class Table
     protected array     $field_full     = [];//全部字段
     protected array     $field_unique   = [];//唯一字段
     protected array     $field_not_null = [];//唯一字段
+    protected array     $field_type     = [];
+    protected array     $field_comment  = [];
+    protected array     $filed_type     = [];
 
 
     protected string    $extra_alias    = '';//别名
     protected array     $alias          = [];//字段别名
     protected array     $display_arr    = [];//显示字段
     protected array     $filter_arr     = [];//过滤字段
+    protected string    $error_message  = '';
 
 
     public function __construct(string $table, string $prefix = '')
@@ -40,11 +44,13 @@ class Table
             try {
                 foreach (Db::query('SHOW FULL COLUMNS FROM ' . $this->getTable()) as $k => $v) {
                     $this->field_full[] = $v['Field'];
-                    $v['Key'] === 'PRI' && $this->primary = $v['Field'];
-                    $v['Key'] === 'UNI' && $this->field_unique[] = $v['Field'];
-                    $v['Null'] === 'NO' && $v['Key'] !== 'PRI' && $this->field_not_null[] = $v['Field'];
-
+                    $v['Key']   === 'PRI'   && $this->primary           = $v['Field'];
+                    $v['Key']   === 'UNI'   && $this->field_unique[]    = $v['Field'];
+                    $v['Null']  === 'NO'    && $v['Key'] !== 'PRI' && $this->field_not_null[] = $v['Field'];
+                    $this->filed_type[$v['Field']]      = $v['Type'];
+                    $this->field_comment[$v['Field']]   = $v['Comment'];
                 }
+                dd($this->filed_type,$this->field_comment);
             }catch (DbException $e){
 //                throw new DbException('数据库或数据表不存在');
             }
@@ -119,8 +125,22 @@ class Table
     /**
      * 字段验证
      */
-    public function verifyFiled()
+    public function filedVerifier(string $filed_name,$filed_value = '',$filed_name_display = [])
     {
+//        dd($this->);
+
+        dd($filed_name,$filed_value);
+        $this->error_message = 'error';
+
+
+        return false;
+
+    }
+
+    /**
+     * 验证字段数据是否存在
+     */
+    public function filedValueHas(){
 
     }
 
@@ -147,6 +167,15 @@ class Table
     {
         return $this->filter_arr;
     }
+
+    /**
+     * @return string
+     */
+    public function getErrorMessage(): string
+    {
+        return $this->error_message;
+    }
+
 
 
 
