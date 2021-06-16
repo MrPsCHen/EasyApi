@@ -5,24 +5,24 @@ namespace EasyApi;
 use think\db\exception\DbException;
 use think\facade\Db;
 
-class Table
+class Table implements \EasyApi\interFaces\Table
 {
-    protected string    $table          = '';//表名
-    protected string    $prefix         = '';//表前缀
-    protected string    $primary        = '';//主键字段
-    protected array     $field_full     = [];//全部字段
-    protected array     $field_unique   = [];//唯一字段
-    protected array     $field_not_null = [];//唯一字段
-    protected array     $field_type     = [];
-    protected array     $field_comment  = [];
-    protected array     $filed_type     = [];
+    protected string    $table              = '';//表名
+    protected string    $prefix             = '';//表前缀
+    protected string    $primary            = '';//主键字段
+    protected array     $field_full         = [];//全部字段
+    protected array     $field_unique       = [];//唯一字段
+    protected array     $field_not_null     = [];//唯一字段
+    protected array     $field_type         = [];
+    protected array     $field_comment      = [];
 
 
-    protected string    $extra_alias    = '';//别名
-    protected array     $alias          = [];//字段别名
-    protected array     $display_arr    = [];//显示字段
-    protected array     $filter_arr     = [];//过滤字段
-    protected string    $error_message  = '';
+    protected string    $extra_alias        = '';//别名
+    protected array     $alias              = [];//字段别名
+    protected array     $display_arr        = [];//显示字段
+    protected array     $filter_arr         = [];//过滤字段
+    protected string    $error_message      = '';
+    protected array     $filed_name_display =[];
 
 
     public function __construct(string $table, string $prefix = '')
@@ -47,10 +47,11 @@ class Table
                     $v['Key']   === 'PRI'   && $this->primary           = $v['Field'];
                     $v['Key']   === 'UNI'   && $this->field_unique[]    = $v['Field'];
                     $v['Null']  === 'NO'    && $v['Key'] !== 'PRI' && $this->field_not_null[] = $v['Field'];
-                    $this->filed_type[$v['Field']]      = $v['Type'];
+                    $this->field_type[$v['Field']]      = $v['Type'];
                     $this->field_comment[$v['Field']]   = $v['Comment'];
+
                 }
-                dd($this->filed_type,$this->field_comment);
+
             }catch (DbException $e){
 //                throw new DbException('数据库或数据表不存在');
             }
@@ -127,12 +128,10 @@ class Table
      */
     public function filedVerifier(string $filed_name,$filed_value = '',$filed_name_display = [])
     {
-//        dd($this->);
 
-        dd($filed_name,$filed_value);
+        dd($this->checkValue($filed_name,$filed_value),$this->error_message);
         $this->error_message = 'error';
-
-
+        dd($this->field_type);
         return false;
 
     }
@@ -142,6 +141,14 @@ class Table
      */
     public function filedValueHas(){
 
+    }
+
+    /**
+     * 字段范围类型判断
+     */
+    public function checkValue(string $filed,?string $val){
+        dd($filed,$val);
+//        self::type[''] ==1;
     }
 
     /**
@@ -174,6 +181,19 @@ class Table
     public function getErrorMessage(): string
     {
         return $this->error_message;
+    }
+
+
+
+    /**
+     * 字段名字设置显示
+     * ['id'=>'序号'],['name'=>'名称'];
+     * @param array $filed_name_display
+     */
+    public function setFiledNameDisplay(array $filed_name_display): Table
+    {
+        $this->filed_name_display = $filed_name_display;
+        return $this;
     }
 
 
