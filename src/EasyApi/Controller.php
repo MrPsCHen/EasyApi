@@ -56,20 +56,23 @@ class Controller
 
     public function save()
     {
-        dd($this->model->save($this->param));
+        $result = $this->model->save($this->param);
+
+        return Helper::auto($result,[$this->model->error()]);
     }
 
     public function del()
     {
-
+        return Helper::auto($this->model->delete($this->param),[$this->model->error()]);
     }
-
     /**
      *
      */
     public function view()
     {
-
+        if(empty($this->param))return Helper::fatal('缺少查询条件');
+        $this->model->autoParam($this->param);
+        return Helper::success($this->model->find());
     }
 
 

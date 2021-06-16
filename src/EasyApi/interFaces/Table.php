@@ -25,6 +25,7 @@ interface Table
         'bigint'    =>['IS_NUMERIC'],
         'float'     =>['IS_FLOAT'],
         'double'    =>['IS_FLOAT'],
+        'decimal'   =>['IS_FLOAT'],
         'char'      =>['STRLEN',[0,255]],
         'varchar'   =>['STRLEN',[0,65535]],
         'tinytext'  =>['STRLEN',[0,255]],
@@ -35,8 +36,9 @@ interface Table
         'time'      =>['TIME'],
         'datetime'  =>['DATATIME'],
         'timestamp' =>['TIMESTAMP'],
+
     ];
 
-//    public function dat();
+
 
 }

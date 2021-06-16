@@ -22,7 +22,7 @@ class Table implements \EasyApi\interFaces\Table
     protected array     $display_arr        = [];//显示字段
     protected array     $filter_arr         = [];//过滤字段
     protected string    $error_message      = '';
-    protected array     $filed_name_display =[];
+    protected array     $field_name_display =[];
 
 
     public function __construct(string $table, string $prefix = '')
@@ -129,10 +129,22 @@ class Table implements \EasyApi\interFaces\Table
     public function filedVerifier(string $filed_name,$filed_value = '',$filed_name_display = [])
     {
 
-        dd($this->checkValue($filed_name,$filed_value),$this->error_message);
-        $this->error_message = 'error';
-        dd($this->field_type);
-        return false;
+        if(!$this->checkValue($filed_name,$filed_value))return false;
+
+        return true;
+
+    }
+
+    public function verifyNotNullFiled(array $array){
+
+        $field = array_diff($this->field_not_null,$array);
+        foreach ($field as $item){
+            $display = isset($this->field_name_display[$item])?$this->field_name_display[$item]:$item;
+            $this->error_message = "{$display}为必填";
+            return false;
+
+        }
+        return true;
 
     }
 
@@ -147,8 +159,58 @@ class Table implements \EasyApi\interFaces\Table
      * 字段范围类型判断
      */
     public function checkValue(string $filed,?string $val){
-        dd($filed,$val);
-//        self::type[''] ==1;
+        if(isset($this->field_type[$filed])){
+            list($type,$length) = explode('(',trim($this->field_type[$filed],')'));
+            if(isset(self::type[$type])){
+                $display = isset($this->field_name_display[$filed])?$this->field_name_display[$filed]:$filed;
+
+                switch ($confine = self::type[$type][0]){
+                    case 'STRLEN':
+                        if(strlen($val)>$length){
+                            $this->error_message = "{$display}长度不能大于$length";
+                            return false;
+                        }
+                        break;
+                    case 'SIZE':
+                        if(!is_numeric($val)){
+                            $this->error_message = "{$display}不是有效数值";
+                            return false;
+                        }
+                        $confine = self::type[$type][1];
+                        if($val>self::type[$type][1][1]){
+                            $this->error_message = "{$display}超出有效范围值:{$confine[1]}";
+                            return false;
+                        }else if($val<self::type[$type][1][0]){
+                            $this->error_message = "{$display}超出有效范围值:{$confine[0]}";
+                            return false;
+                        }
+                        break;
+                    case 'IS_NUMERIC':
+                        if(!is_numeric($val)){
+                            $this->error_message = "{$display}不是有效数值";
+                            return false;
+                        }
+                        break;
+                    case 'IS_FLOAT':
+                        if(!is_numeric($val)&&!is_float($val)){
+                            $this->error_message = "{$display}不是有效数值";
+                            return false;
+                        }
+                        break;
+                    case 'DATA':
+
+                        break;
+                    default:
+
+                }
+
+            }
+            return true;
+
+        }else{
+            $this->error_message = '为收录类型:'.$filed;
+            return false;
+        }
     }
 
     /**
@@ -188,13 +250,33 @@ class Table implements \EasyApi\interFaces\Table
     /**
      * 字段名字设置显示
      * ['id'=>'序号'],['name'=>'名称'];
-     * @param array $filed_name_display
+     * @param array $field_name_display
      */
-    public function setFiledNameDisplay(array $filed_name_display): Table
+    public function setFiledNameDisplay(array $field_name_display): Table
     {
-        $this->filed_name_display = $filed_name_display;
+
+        $this->field_name_display = $field_name_display;
+
         return $this;
     }
+
+    /**
+     * @return array
+     */
+    public function getFieldUnique(): array
+    {
+        return $this->field_unique;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFieldNameDisplay(): array
+    {
+        return $this->field_name_display;
+    }
+
+
 
 
 
