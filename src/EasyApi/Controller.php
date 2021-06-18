@@ -18,6 +18,7 @@ class Controller
     {
         if(function_exists('request'))$this->param = request()->param();
         if($model = $this->scoutClassName())$this->implant(new $model());
+        $this->param = request()->param();
 
     }
 
@@ -87,10 +88,11 @@ class Controller
      * 查找类名作为模型的名称
      */
     protected function scoutClassName(){
-        $path = 'app\\model\\';//路径依赖
-        !empty($app_name = app('http')->getName()) && $path = $app_name.DIRECTORY_SEPARATOR;//应用依赖
+        $path = 'app\\';//路径依赖
+        !empty($app_name = app('http')->getName()) && $app_name = $app_name."\\";//应用依赖
+        $path.= $app_name;
+        $path.= "model\\";
         $class = basename(str_replace('\\', '/', get_class($this)));//通过继承类名获取
-
         if(class_exists($path.strtolower($class))){
             return $path.strtolower($class);
         }else if (class_exists($path.$class)){
