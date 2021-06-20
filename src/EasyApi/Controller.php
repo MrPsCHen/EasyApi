@@ -73,7 +73,8 @@ class Controller
     {
         if(empty($this->param))return Helper::fatal('缺少查询条件');
         $this->model->autoParam($this->param);
-        return Helper::success($this->model->find());
+        $this->back = $this->model->find();
+        return Helper::success($this->back);
     }
 
 
