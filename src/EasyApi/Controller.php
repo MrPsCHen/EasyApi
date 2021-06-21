@@ -8,16 +8,18 @@ use app\model\index;
 
 class Controller
 {
-    protected ?Model    $model  = null; //数据模型
-    protected array     $param  = [];   //输入参数
-    protected string    $path   = '';   //模型路径
-    protected           $back;          //返回数据
+    protected array     $middleware = [];   //中间件
+    protected ?Model    $model      = null; //数据模型
+    protected array     $param      = [];   //输入参数
+    protected string    $path       = '';   //模型路径
+    protected           $back;              //返回数据
 
 
     public function __construct()
     {
         if(function_exists('request'))$this->param = request()->param();
         if($model = $this->scoutClassName())$this->implant(new $model());
+        $this->param = request()->param();
 
     }
 
@@ -72,13 +74,33 @@ class Controller
     {
         if(empty($this->param))return Helper::fatal('缺少查询条件');
         $this->model->autoParam($this->param);
-        return Helper::success($this->model->find());
+        $this->back = $this->model->find();
+        return Helper::success($this->back);
     }
 
 
-
-
-
+    /**
+     *
+     */
+    public function required(array $fields = [],?array $param = null)
+    {
+        $param = $param??$this->param;
+        foreach ($fields as $key=>$val)
+        {
+            if(is_numeric($key)){
+                if(!isset($param[$val])) {
+                    response(Helper::fatal("{$val}为必填字段")->getContent())->send();
+                    exit();
+                }
+            }else{
+                if(!isset($param[$key])){
+                    response(Helper::fatal("{$val}为必填字段")->getContent())->send();
+                    exit();
+                }
+            }
+        }
+        return $this;
+    }
 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
@@ -87,10 +109,11 @@ class Controller
      * 查找类名作为模型的名称
      */
     protected function scoutClassName(){
-        $path = 'app\\model\\';//路径依赖
-        !empty($app_name = app('http')->getName()) && $path = $app_name.DIRECTORY_SEPARATOR;//应用依赖
+        $path = 'app\\';//路径依赖
+        !empty($app_name = app('http')->getName()) && $app_name = $app_name."\\";//应用依赖
+        $path.= $app_name;
+        $path.= "model\\";
         $class = basename(str_replace('\\', '/', get_class($this)));//通过继承类名获取
-
         if(class_exists($path.strtolower($class))){
             return $path.strtolower($class);
         }else if (class_exists($path.$class)){

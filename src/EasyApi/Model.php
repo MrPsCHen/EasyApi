@@ -178,6 +178,23 @@ class Model
 
     public function where(?array $array)
     {
+		if(empty($this->full_field))$this->outFiledFull();
+        $filed_full = [];
+        foreach ($this->full_field as $key =>$value){
+            $filed_full[] = "{$value}.{$key}";
+        }
+        foreach ($array as $key=>$value){
+            if(!is_array($value)&&!is_numeric($key)){
+                $array["{$this->full_field[$key]}.{$key}"] = $value;
+                unset($array[$key]);
+            }else if(is_array($value)){
+
+
+                if(!in_array($value[0],$filed_full)&&!isset($this->full_field[$value[0]])){
+                    unset($array[$key]);
+                }
+            }
+        }
         $this->cursor->where($array);
         return $this;
     }
@@ -490,14 +507,12 @@ class Model
             if (isset($this->full_field[$key])) {
                 if (($this->choseTable($this->full_field[$key])->filedVerifier($key, $value)) == false) {
                     $this->error_message = $this->choseTable($this->full_field[$key])->getErrorMessage();
-                    dd("?");
                     return false;
                 }
             } else {
 
                 unset($param[$key]);
             }
-
         }
         return true;
 
