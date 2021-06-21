@@ -507,7 +507,6 @@ class Model
             if (isset($this->full_field[$key])) {
                 if (($this->choseTable($this->full_field[$key])->filedVerifier($key, $value)) == false) {
                     $this->error_message = $this->choseTable($this->full_field[$key])->getErrorMessage();
-                    dd("?");
                     return false;
                 }
             } else {
