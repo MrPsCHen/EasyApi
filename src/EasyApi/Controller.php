@@ -78,9 +78,28 @@ class Controller
     }
 
 
-
-
-
+    /**
+     *
+     */
+    public function required(array $fields = [],?array $param = null)
+    {
+        $param = $param??$this->param;
+        foreach ($fields as $key=>$val)
+        {
+            if(is_numeric($key)){
+                if(!isset($param[$val])) {
+                    response(Helper::fatal("{$val}为必填字段")->getContent())->send();
+                    exit();
+                }
+            }else{
+                if(!isset($param[$key])){
+                    response(Helper::fatal("{$val}为必填字段")->getContent())->send();
+                    exit();
+                }
+            }
+        }
+        return $this;
+    }
 
 
 /*--------------------------------------------------------------------------------------------------------------------*/
