@@ -115,4 +115,19 @@ class Controller
 
     }
 
+    /**
+     * 必填
+     */
+    protected function required(array $param = [])
+    {
+        foreach ($param as $key =>$value){
+            $field  = is_numeric($key)?$value:$key;
+            if(!isset($this->param[$field])){
+                response(Helper::fatal("{$value}为必填项")->getContent())->send();
+                exit;
+            }
+        }
+
+    }
+
 }
