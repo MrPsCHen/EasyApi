@@ -8,10 +8,11 @@ use app\model\index;
 
 class Controller
 {
-    protected ?Model    $model  = null; //数据模型
-    protected array     $param  = [];   //输入参数
-    protected string    $path   = '';   //模型路径
-    protected           $back;          //返回数据
+    protected array     $middleware = [];   //中间件
+    protected ?Model    $model      = null; //数据模型
+    protected array     $param      = [];   //输入参数
+    protected string    $path       = '';   //模型路径
+    protected           $back;              //返回数据
 
 
     public function __construct()
