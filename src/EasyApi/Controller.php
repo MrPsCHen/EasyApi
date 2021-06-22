@@ -20,6 +20,7 @@ class Controller
         if(function_exists('request'))$this->param = request()->param();
         if($model = $this->scoutClassName())$this->implant(new $model());
         $this->param = request()->param();
+        if(isset(request()->uid))$this->uid = request()->uid;
 
     }
 
@@ -47,6 +48,7 @@ class Controller
         $this->filterParamNull();
         $this->model->autoParam($this->param);
         $this->model->select();
+
         $this->back = $this->model->getBack();
         return Helper::success([
             'page'  =>$this->model->getPage(),
@@ -109,6 +111,8 @@ class Controller
      * 查找类名作为模型的名称
      */
     protected function scoutClassName(){
+
+
         $path = 'app\\';//路径依赖
         !empty($app_name = app('http')->getName()) && $app_name = $app_name."\\";//应用依赖
         $path.= $app_name;
@@ -128,13 +132,11 @@ class Controller
      */
     protected function filterParamNull(){
         //判断是否过滤空参数
-        if(isset($this->param['filter_param_null'])&&$this->param['filter_param_null']){
-            if(strtolower($this->param['filter_param_null'])== 'false')return;
-            foreach ($this->param as $key=>$val){
-                if(empty($val)&&strlen($val)<=0)unset($this->param[$key]);
-            };
-            unset($this->param['filter_param_null']);
-        }
+        if(isset($this->param['filter_param_null'])&&$this->param['filter_param_null'] =='false')return;
+        foreach ($this->param as $key=>$val){
+            if(empty($val)&&strlen($val)<=0)unset($this->param[$key]);
+        };
+        unset($this->param['filter_param_null']);
 
     }
 
