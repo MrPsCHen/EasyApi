@@ -13,21 +13,23 @@ class Model
     protected string $table = '';
     protected string $prefix = '';
 
-    protected array $tables = [];   //表对象
-    protected int $page = 1;    //页码
-    protected int $limit = 20;   //条数
-    protected $cursor = null; //游标对象
-    protected ?array $back = [];   //返回对象
-    protected array $_ploy = [];   //聚合参数
-    protected array $_extra = [];   //扩展参数
+    protected array $tables         = [];   //表对象
+    protected int $page             = 1;    //页码
+    protected int $limit            = 20;   //条数
+    protected $cursor               = null; //游标对象
+    protected ?array $back          = [];   //返回对象
+    protected array $_ploy          = [];   //聚合参数
+    protected array $_extra         = [];   //扩展参数
 
-    protected array $full_field = [];
-    protected array $cursor_like = [];
-    protected array $cursor_in = [];
-    protected array $cursor_where = [];
-    protected array $cursor_join = [];
+    protected array $full_field     = [];
+    protected array $check_field    = [];
+    protected array $cursor_like    = [];
+    protected array $cursor_in      = [];
+    protected array $cursor_where   = [];
+    protected array $cursor_join    = [];
     protected string $error_message = '';
-    protected array $param = [];
+    protected array $param          = [];
+
 
     public function __construct(string $table = '', string $prefix = '')
     {
@@ -60,10 +62,11 @@ class Model
     public function select()
     {
 
-        $this->outFiledFull();
-        $this->_join();
-        $this->_decorate();
-        $this->_decorate_prefix();
+        $this->outFiledFull();      //导出字段
+        $this->_join();             //添加聚合表
+        $this->_decorate();         //修饰词:LIKE,IN
+        $this->_decorate_prefix();  //修饰词前缀
+        $this->_clearParam();       //清理不存在参数
         $this->cursor->page($this->page, $this->limit);
 
         $this->cursor->where($this->cursor_where);
@@ -124,8 +127,7 @@ class Model
             $this->error_message = '请求参数不能为空';
             return false;
         }
-        //判断参数是否必填
-        if(!$this->filedNotNullVerifier($param))return false;
+
         //验证字段类型和长度
         if (!$this->filedVerifier($param))return false;
 
@@ -137,6 +139,8 @@ class Model
             if (isset($param[$table->getPrimary()])) {
                 return $this->cursor->where([$table->getPrimary() => [$param[$table->getPrimary()]]])->update($param);
             } else {
+                //判断参数是否必填
+                if(!$this->filedNotNullVerifier($param))return false;
                 $result = $this->cursor->insert($param);
             }
             return $result>0;
@@ -407,6 +411,11 @@ class Model
     protected function outFiledFull()
     {
         foreach (array_reverse($this->tables) as $key => $table) {
+            $tmp = array_fill_keys($table->getFieldFull(), $table->getTable());
+            $check_field = &$this->check_field;
+            array_map(function($val)use($tmp,$check_field){
+                $check_field[] = $val;
+            },$table->getFieldFull());
             $this->full_field = array_merge($this->full_field, array_fill_keys($table->getFieldFull(), $table->getTable()));
         }
     }
@@ -499,6 +508,15 @@ class Model
     }
 
     /**
+     * 清理参数
+     */
+    public function _clearParam()
+    {
+//        dd($this->param);
+//        dd($this->param);
+    }
+
+    /**
      * 字段数据验证
      */
     protected function filedVerifier(array &$param = null)
@@ -513,6 +531,7 @@ class Model
 
                 unset($param[$key]);
             }
+
         }
         return true;
 
