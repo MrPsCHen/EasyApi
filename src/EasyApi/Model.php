@@ -29,7 +29,7 @@ class Model
     protected array $cursor_join    = [];
     protected string $error_message = '';
     protected array $param          = [];
-
+    protected int $Last_Insert_Id   = 0;
 
     public function __construct(string $table = '', string $prefix = '')
     {
@@ -115,8 +115,11 @@ class Model
 
     public function insert()
     {
+
         $this->setMaster();
-        return $this->cursor->inster($this->param);
+        $back = $this->cursor->inster($this->param);
+        $this->Last_Insert_Id = $this->cursor->getLastInsID();
+        return $back;
     }
 
     public function save(array $param = [])
@@ -138,13 +141,20 @@ class Model
         $this->setMaster();
         $table = $this->choseTable();
 
+
+
         try {
             if (isset($param[$table->getPrimary()])) {
                 return $this->cursor->where([$table->getPrimary() => [$param[$table->getPrimary()]]])->update($param);
             } else {
+
+
+
+                
                 //判断参数是否必填
                 if(!$this->filedNotNullVerifier($param))return false;
                 $result = $this->cursor->insert($param);
+                $this->Last_Insert_Id = $this->cursor->getLastInsID();
             }
             return $result>0;
         }catch (\Exception $e){
@@ -248,6 +258,16 @@ class Model
     {
         $this->limit = $limit;
     }
+
+    /**
+     * @return array|int
+     */
+    public function getLastInsertId()
+    {
+        return $this->Last_Insert_Id;
+    }
+
+
 
 
 
@@ -565,9 +585,12 @@ class Model
     protected function filedNotNullVerifier(array &$param = null)
     {
 
+
         if($this->choseTable()->verifyNotNullFiled(array_keys($param))){
+
             return true;
         }else{
+
             $this->error_message = $this->choseTable()->getErrorMessage();
             return false;
         }

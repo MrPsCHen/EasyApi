@@ -160,7 +160,16 @@ class Table implements \EasyApi\interFaces\Table
      */
     public function checkValue(string $filed,?string $val){
         if(isset($this->field_type[$filed])){
-            list($type,$length) = explode('(',trim($this->field_type[$filed],')'));
+
+
+            $back = explode('(',trim($this->field_type[$filed],')'));
+            $length = 999999;
+            if($back[0]!='text'){
+                list($type,$length) = explode('(',trim($this->field_type[$filed],')'));
+            }else{
+                $type = reset($back);
+            }
+
             if(isset(self::type[$type])){
                 $display = isset($this->field_name_display[$filed])?$this->field_name_display[$filed]:$filed;
 
