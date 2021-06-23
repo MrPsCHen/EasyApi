@@ -93,13 +93,22 @@ class Model
 
     public function count()
     {
+        $this->_outFiledFull();      //导出字段
+        $this->_join();             //添加聚合表
+        $this->_clearParam();       //清理不存在参数
+        $this->_decorate();         //修饰词:LIKE,IN
+        $this->_decorate_prefix();  //修饰词前缀
+        $this->cursor->where($this->cursor_where);
         return $this->cursor->page(0, 1)->count();
     }
 
     public function update(?array $array = [])
     {
+        $this->setMaster();
         $table = reset($this->tables);
-        $table->verifyFiled();
+        $this->cursor->where($this->cursor_where);
+        $this->cursor->where([$table->getPrimary()=>$this->param[$table->getPrimary()]]);
+        $table->verifyFiled($array);
         $this->cursor->update($array);
     }
 
@@ -147,10 +156,6 @@ class Model
             if (isset($param[$table->getPrimary()])) {
                 return $this->cursor->where([$table->getPrimary() => [$param[$table->getPrimary()]]])->update($param);
             } else {
-
-
-
-                
                 //判断参数是否必填
                 if(!$this->filedNotNullVerifier($param))return false;
                 $result = $this->cursor->insert($param);
@@ -169,7 +174,7 @@ class Model
                     }
                     $back = implode('、',$show);
                     $this->error_message = $back.'不可重复';
-                    break;
+                    
             }
         }
         return false;
@@ -283,7 +288,7 @@ class Model
         return $this->tables[$prefix . $table];
     }
 
-    public function extra(string $table, string $prefix, string $contact_filed)
+    public function extra(string $table, string $prefix, string $contact_filed):Table
     {
         $this->_extra[$prefix . $table] = [$contact_filed, true];
         !isset($this->tables[$prefix . $table]) && $this->tables[$prefix . $table] = new Table($table, $prefix);
@@ -442,6 +447,7 @@ class Model
     {
         foreach (array_reverse($this->tables) as $key => $table) {
             $tmp = array_fill_keys($table->getFieldFull(), $table->getTable());
+
             $check_field = &$this->check_field;
             array_map(function($val)use($tmp,&$check_field){
                 $check_field[] = $val;
@@ -449,6 +455,7 @@ class Model
             },$table->getFieldFull());
             $this->full_field = array_merge($this->full_field, array_fill_keys($table->getFieldFull(), $table->getTable()));
         }
+
         $this->check_field = array_unique($this->check_field);
     }
 
@@ -497,11 +504,13 @@ class Model
                 $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $table->getPrimary());
                 $searchFiled = $table->getPrimary();
             }
-
+            $key_table = $this->choseTable($key);
+            $fields = implode(',',array_values($key_table->outFiled()));
+            $fields = empty($fields)?'*':$fields;
             $extra_arr = Db::table($key)
                 ->where([[$searchFiled, 'IN', is_array($condition) ? implode(',', $condition) : $condition]])
-                ->column('*', $searchFiled);
-
+                ->column($fields.",{$key_table->getPrimary()}", $searchFiled);
+            $key = empty($key_table->getExtraAlias())?$key:$key_table->getExtraAlias();
             if ($value[1]) {
                 if ($flag_find) {
                     $consult = $this->back[$value[0]];
@@ -512,7 +521,7 @@ class Model
                     foreach ($this->back as $_key => $_val) {
                         $consult = $_val[$value[0]];                //获取对应字段参数
                         $consult = explode(',', $consult);  //可能存在多个值，进行分割
-                        $consult = array_flip($consult);           //键值对调，进行数组合并
+                        $consult = array_flip($consult);             //键值对调，进行数组合并
                         $this->back[$_key][$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
                     }
                 }

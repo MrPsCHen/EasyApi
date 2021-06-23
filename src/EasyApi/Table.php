@@ -223,6 +223,14 @@ class Table implements \EasyApi\interFaces\Table
     }
 
     /**
+     * 字段验证
+     * @param array $param
+     */
+    public function verifyFiled(array $param){
+       return true;
+    }
+
+    /**
      * @return array
      */
     public function getFieldFull(): array
@@ -284,6 +292,28 @@ class Table implements \EasyApi\interFaces\Table
     {
         return $this->field_name_display;
     }
+
+    /**
+     * @return string
+     */
+    public function getExtraAlias(): string
+    {
+        return $this->extra_alias;
+    }
+
+    
+
+    /**
+     * 表别名 注意:可能会覆盖到原数组标签字段
+     * @param string $extra_alias
+     */
+    public function setExtraAlias(string $extra_alias): Table
+    {
+        $this->extra_alias = $extra_alias;
+        return $this;
+    }
+
+
 
 
 
