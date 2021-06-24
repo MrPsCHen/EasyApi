@@ -160,7 +160,16 @@ class Table implements \EasyApi\interFaces\Table
      */
     public function checkValue(string $filed,?string $val){
         if(isset($this->field_type[$filed])){
-            list($type,$length) = explode('(',trim($this->field_type[$filed],')'));
+
+
+            $back = explode('(',trim($this->field_type[$filed],')'));
+            $length = 999999;
+            if($back[0]!='text'){
+                list($type,$length) = explode('(',trim($this->field_type[$filed],')'));
+            }else{
+                $type = reset($back);
+            }
+
             if(isset(self::type[$type])){
                 $display = isset($this->field_name_display[$filed])?$this->field_name_display[$filed]:$filed;
 
@@ -211,6 +220,14 @@ class Table implements \EasyApi\interFaces\Table
             $this->error_message = '为收录类型:'.$filed;
             return false;
         }
+    }
+
+    /**
+     * 字段验证
+     * @param array $param
+     */
+    public function verifyFiled(array $param){
+       return true;
     }
 
     /**
@@ -275,6 +292,28 @@ class Table implements \EasyApi\interFaces\Table
     {
         return $this->field_name_display;
     }
+
+    /**
+     * @return string
+     */
+    public function getExtraAlias(): string
+    {
+        return $this->extra_alias;
+    }
+
+    
+
+    /**
+     * 表别名 注意:可能会覆盖到原数组标签字段
+     * @param string $extra_alias
+     */
+    public function setExtraAlias(string $extra_alias): Table
+    {
+        $this->extra_alias = $extra_alias;
+        return $this;
+    }
+
+
 
 
 
