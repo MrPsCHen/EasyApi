@@ -131,6 +131,18 @@ class Model
         return $back;
     }
 
+    /**
+     * 插入记录
+     * @access public
+     * @param array   $data         数据
+     * @param boolean $getLastInsID 返回自增主键
+     * @return integer|string
+     */
+    public function add(array $data = [], bool $getLastInsID = false)
+    {
+        $this->cursor->insert($data,$getLastInsID);
+    }
+
     public function save(array $param = [])
     {
 
