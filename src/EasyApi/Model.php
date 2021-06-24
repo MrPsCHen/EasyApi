@@ -236,12 +236,10 @@ class Model
             $filed_full[] = "{$value}.{$key}";
         }
         foreach ($array as $key=>$value){
-            if(!is_array($value)&&!is_numeric($key)){
+            if(!is_array($value)&&!is_numeric($key)&&isset($array[$key])){
                 $array["{$this->full_field[$key]}.{$key}"] = $value;
                 unset($array[$key]);
             }else if(is_array($value)){
-
-
                 if(!in_array($value[0],$filed_full)&&!isset($this->full_field[$value[0]])){
                     unset($array[$key]);
                 }
