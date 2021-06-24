@@ -430,7 +430,6 @@ class Model
 
             }
         }
-        dd($this->cursor_where);
     }
 
 
