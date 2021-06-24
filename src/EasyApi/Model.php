@@ -72,7 +72,7 @@ class Model
 
         $this->cursor->where($this->cursor_where);
 
-//        dd($this->cursor->fetchSql()->select());
+        dd($this->cursor->fetchSql()->select());
         $this->back = $this->cursor->select()->toArray();
         $this->_extra_join();
         return $this;
@@ -422,11 +422,15 @@ class Model
     protected function _decorate_prefix()
     {
         foreach ($this->cursor_where as $k => $v) {
-            if (isset($this->full_field[$k])) {
-                $this->cursor_where[$this->full_field[$k] . '.' . $k] = $v;
+            if(is_array($v)){
+                $this->cursor_where[$k][0] = isset($this->full_field[$v[0]])?($this->full_field[$v[0]].'.'.$v[0]):$v[0];
+            }else if (is_string($k) && !is_numeric($k)){
+                $this->cursor_where[$this->full_field[$k]."0".$k] = $v;
                 unset($this->cursor_where[$k]);
+
             }
         }
+        dd($this->cursor_where);
     }
 
 
@@ -558,7 +562,7 @@ class Model
         foreach ($param as $key => $val){
             if(is_string($val) && !in_array($key,$this->check_field)){
                 unset($param[$key]);
-            }else if(is_array($val)&&!in_array($this->check_field[])){
+            }else if(is_array($val)&&!in_array(reset($val),$this->check_field)){
                 unset($param[$key]);
             }
         }
