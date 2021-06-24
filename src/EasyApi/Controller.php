@@ -58,11 +58,10 @@ class Controller
         ]);
     }
 
-    public function save()
+    public function save(array $param = [])
     {
-        
+        $param = empty($param)?$this->param:$param;
         $result = $this->model->save($this->param);
-
         return Helper::auto($result,[$this->model->error()]);
     }
 

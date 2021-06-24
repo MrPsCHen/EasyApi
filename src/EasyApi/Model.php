@@ -80,6 +80,7 @@ class Model
 
     public function find()
     {
+
         $this->_outFiledFull();
         $this->_join();
         $this->_decorate();
@@ -196,8 +197,20 @@ class Model
      * @param string $key   索引
      * @return array
      */
-    public function column($field, string $key = ''){
+    public function column($field, string $key = '')
+    {
         return $this->cursor->column($field,$key);
+    }
+
+    public function has():bool
+    {
+        $this->_outFiledFull();      //导出字段
+        $this->_join();             //添加聚合表
+        $this->_clearParam();       //清理不存在参数
+        $this->_decorate();         //修饰词:LIKE,IN
+        $this->_decorate_prefix();  //修饰词前缀
+        $this->cursor->where($this->cursor_where);
+        return $this->cursor->count()>0;
     }
 
 
@@ -442,12 +455,12 @@ class Model
         foreach ($this->cursor_where as $k => $v) {
             if(is_array($v)){
                 $this->cursor_where[$k][0] = isset($this->full_field[$v[0]])?($this->full_field[$v[0]].'.'.$v[0]):$v[0];
-            }else if (is_string($k) && !is_numeric($k)){
-                $this->cursor_where[$this->full_field[$k].".".$k] = $v;
+            }else if (is_string($k) && !is_numeric($k)&&isset($this->full_field[$k])){
+                $this->cursor_where["{$this->full_field[$k]}.{$k}"] = $v;
                 unset($this->cursor_where[$k]);
-
             }
         }
+
     }
 
 
