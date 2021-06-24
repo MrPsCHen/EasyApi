@@ -72,7 +72,7 @@ class Model
 
         $this->cursor->where($this->cursor_where);
 
-        dd($this->cursor->fetchSql()->select());
+//        dd($this->cursor->fetchSql()->select());
         $this->back = $this->cursor->select()->toArray();
         $this->_extra_join();
         return $this;
@@ -135,8 +135,6 @@ class Model
     {
 
         $this->_outFiledFull();
-
-
         //判断参数
         if (empty($param) && empty($param = $this->param)){
             $this->error_message = '请求参数不能为空';
@@ -178,6 +176,16 @@ class Model
             }
         }
         return false;
+    }
+    /**
+     * 得到某个列的数组
+     * @access public
+     * @param string|array $field 字段名 多个字段用逗号分隔
+     * @param string $key   索引
+     * @return array
+     */
+    public function column($field, string $key = ''){
+        return $this->cursor->column($field,$key);
     }
 
 
@@ -425,7 +433,7 @@ class Model
             if(is_array($v)){
                 $this->cursor_where[$k][0] = isset($this->full_field[$v[0]])?($this->full_field[$v[0]].'.'.$v[0]):$v[0];
             }else if (is_string($k) && !is_numeric($k)){
-                $this->cursor_where[$this->full_field[$k]."0".$k] = $v;
+                $this->cursor_where[$this->full_field[$k].".".$k] = $v;
                 unset($this->cursor_where[$k]);
 
             }

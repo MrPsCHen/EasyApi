@@ -60,6 +60,7 @@ class Controller
 
     public function save()
     {
+        
         $result = $this->model->save($this->param);
 
         return Helper::auto($result,[$this->model->error()]);
