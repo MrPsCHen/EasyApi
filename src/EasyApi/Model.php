@@ -26,6 +26,7 @@ class Model
     protected array $cursor_like    = [];
     protected array $cursor_in      = [];
     protected array $cursor_where   = [];
+    protected array $cursor_where_or= [];
     protected array $cursor_join    = [];
     protected string $error_message = '';
     protected array $param          = [];
@@ -65,14 +66,13 @@ class Model
         $this->_outFiledFull();      //导出字段
         $this->_join();             //添加聚合表
         $this->_clearParam();       //清理不存在参数
-        $this->_decorate();         //修饰词:LIKE,IN
         $this->_decorate_prefix();  //修饰词前缀
 
         $this->cursor->page($this->page, $this->limit);
 
-        $this->cursor->where($this->cursor_where);
 
-//        dd($this->cursor->fetchSql()->select());
+        $this->cursor->where($this->_decorate($this->cursor_where));
+        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
         $this->back = $this->cursor->select()->toArray();
         $this->_extra_join();
         return $this;
@@ -83,9 +83,9 @@ class Model
 
         $this->_outFiledFull();
         $this->_join();
-        $this->_decorate();
         $this->_decorate_prefix();
-        $this->cursor->where($this->cursor_where);
+        $this->cursor->where($this->_decorate($this->cursor_where));
+        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
         $this->back = $this->cursor->find();
         $this->_extra_join(true);
         return $this->back;
@@ -97,20 +97,24 @@ class Model
         $this->_outFiledFull();      //导出字段
         $this->_join();             //添加聚合表
         $this->_clearParam();       //清理不存在参数
-        $this->_decorate();         //修饰词:LIKE,IN
         $this->_decorate_prefix();  //修饰词前缀
-        $this->cursor->where($this->cursor_where);
+        $this->cursor->where($this->_decorate($this->cursor_where));
         return $this->cursor->page(0, 1)->count();
     }
 
     public function update(?array $array = [])
     {
+
         $this->setMaster();
         $table = reset($this->tables);
-        $this->cursor->where($this->cursor_where);
+        $this->cursor->where($this->_decorate($this->cursor_where));
         if(isset($this->param[$table->getPrimary()]))
         $this->cursor->where([$table->getPrimary()=>$this->param[$table->getPrimary()]]);
+        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
+        $this->_clearParam($array);
         $table->verifyFiled($array);
+
+        $this->_field_comparison($array);
         return $this->cursor->update($array);
     }
 
@@ -119,6 +123,7 @@ class Model
         $this->setMaster();
         $where = $this->_format(array_merge($array, $this->param));
         $this->cursor->where($where);
+        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
         $back = $this->cursor->delete();
         if(!$back)$this->error_message = '数据不存在';
         return $back?true:false;
@@ -166,6 +171,7 @@ class Model
 
         try {
             if (isset($param[$table->getPrimary()])) {
+                $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
                 return $this->cursor->where([$table->getPrimary() => [$param[$table->getPrimary()]]])->update($param);
             } else {
                 //判断参数是否必填
@@ -208,9 +214,9 @@ class Model
         $this->_outFiledFull();      //导出字段
         $this->_join();             //添加聚合表
         $this->_clearParam();       //清理不存在参数
-        $this->_decorate();         //修饰词:LIKE,IN
         $this->_decorate_prefix();  //修饰词前缀
-        $this->cursor->where($this->cursor_where);
+        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
+        $this->cursor->where($this->_decorate($this->cursor_where));
         return $this->cursor->count()>0;
     }
 
@@ -244,13 +250,14 @@ class Model
 
     public function where(?array $array)
     {
+
 		if(empty($this->full_field))$this->_outFiledFull();
         $filed_full = [];
         foreach ($this->full_field as $key =>$value){
             $filed_full[] = "{$value}.{$key}";
         }
         foreach ($array as $key=>$value){
-            if(!is_array($value)&&!is_numeric($key)&&isset($array[$key])){
+            if(!is_array($value)&&!is_numeric($key)&&isset($this->full_field[$key])){
                 $array["{$this->full_field[$key]}.{$key}"] = $value;
                 unset($array[$key]);
             }else if(is_array($value)){
@@ -261,11 +268,25 @@ class Model
         }
         $this->_clearParam();
         $this->cursor->where($array);
+        $this->cursor_where = $array;
         return $this;
     }
 
-    public function whereOr($field, $op = null, $condition = null){
-        $this->cursor->whereOr($field, $op, $condition);
+    /**
+     * 指定OR查询条件
+     * @access public
+     * @param mixed $field     查询字段
+     * @return $this
+     */
+    public function whereOr($field){
+        foreach ($field as $key =>$item){
+            if(is_array($item)){
+                $this->cursor_where_or[] = $field;
+            }else {
+                $this->cursor_where_or[] = [$key,'=',$item];
+            }
+        }
+        
         return $this;
     }
 
@@ -315,6 +336,8 @@ class Model
 
 
 
+
+
     /*--------------------------------------------------------------------------------------------------------------------*/
 //聚合查询
 
@@ -325,7 +348,7 @@ class Model
         return $this->tables[$prefix . $table];
     }
 
-    public function extra(string $table, string $prefix, string $contact_filed):Table
+    public function extra(string $table, string $prefix, $contact_filed):Table
     {
         $this->_extra[$prefix . $table] = [$contact_filed, true];
         !isset($this->tables[$prefix . $table]) && $this->tables[$prefix . $table] = new Table($table, $prefix);
@@ -420,7 +443,17 @@ class Model
      */
     public function getBack(): array
     {
-        return $this->back;
+
+        return $this->back??[];
+    }
+
+    /**
+     * 清空查询条件
+     */
+    public function clearWhere(){
+        $this->cursor_where = [];
+        $this->cursor_where_or = [];
+        return $this;
     }
 
 
@@ -430,27 +463,21 @@ class Model
     /**
      * 修饰词：in,like等
      */
-    protected function _decorate()
+    protected function _decorate(array $array = [])
     {
-        if (empty($this->cursor_like) && empty($this->cursor_in)) return;
-        foreach ($this->cursor_where as $k => $v) {
-            //这里将过滤参数值为空得参数
+        foreach ($array as $k => $v) {
             if (in_array($k, $this->cursor_like) && isset($this->full_field[$k])) {
-                $this->cursor_where[] = [$this->full_field[$k] . '.' . $k, 'LIKE', "%{$v}%"];
-                unset($this->cursor_where[$k]);
+                $array[] = [$this->full_field[$k] . '.' . $k, 'LIKE', "%{$v}%"];
+                unset($array[$k]);
             } else if (in_array($k, $this->cursor_in) && isset($this->full_field[$k])) {
-
-                $this->cursor_where[] = [$this->full_field[$k] . '.' . $k, 'IN', is_array($v) ? implode(',', $v) : $v];
-                unset($this->cursor_where[$this->full_field[$k] . '.' . $k]);
+                $array[] = [$this->full_field[$k] . '.' . $k, 'IN', is_array($v) ? implode(',', $v) : $v];
+                unset($array[$this->full_field[$k] . '.' . $k]);
             } else if (isset($this->full_field[$k])) {
-                $this->cursor_where[] = [$this->full_field[$k] . '.' . $k, '=', $v];
+                $array[] = [$this->full_field[$k] . '.' . $k, '=', $v];
             }
-
-            
-
-            unset($this->cursor_where[$k]);
         }
 
+        return $this->_restrict_prefix($array);
     }
 
     /**
@@ -467,6 +494,28 @@ class Model
             }
         }
 
+    }
+
+    /**
+     * 条件字段添加表限定前缀
+     * @param array $array
+     */
+    protected function _restrict_prefix(array $array)
+    {
+        if(empty($this->full_field))$this->_outFiledFull();
+        $filed_full = [];
+        foreach ($this->full_field as $key =>$value){
+            $filed_full[] = "{$value}.{$key}";
+        }
+        foreach ($array as $key=>$value){
+            if(!is_array($value)&&!is_numeric($key)&&isset($this->full_field[$key])){
+                $array["{$this->full_field[$key]}.{$key}"] = $value;
+                unset($array[$key]);
+            }else if(is_array($value)&& isset($this->full_field[$value[0]]) ){
+                $array[$key][0] = $this->full_field[$value[0]].'.'.$value[0];
+            }
+        }
+        return $array;
     }
 
 
@@ -535,8 +584,21 @@ class Model
     protected function _extra_join(bool $flag_find = false)
     {
         $table = reset($this->tables);
+
         foreach ($this->_extra as $key => $value) {
-            if ($value[1]) {
+            if(is_array($value[0])){
+                $keys = array_keys($value[0]);
+                $vals = array_values($value[0]);
+                if($value[1])$back = [$this->back];
+                $condition = array_column($back, reset($keys));
+                $searchFiled = reset($vals);
+                
+//                $keys = array_keys($value[0]);
+//                $vals = array_values($value[0]);
+//                $condition = array_column($this->back, $key);
+//                dd($this->back);
+//                $searchFiled = reset($keys);
+            }else if ($value[1]) {
 
                 $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $value[0]);
                 $searchFiled = $this->tables[$key]->getPrimary();
@@ -549,14 +611,21 @@ class Model
             $fields = empty($fields)?'*':$fields;
             $extra_arr = Db::table($key)
                 ->where([[$searchFiled, 'IN', is_array($condition) ? implode(',', $condition) : $condition]])
+//                ->fetchSql()
                 ->column($fields.",{$key_table->getPrimary()}", $searchFiled);
+
             $key = empty($key_table->getExtraAlias())?$key:$key_table->getExtraAlias();
+
             if ($value[1]) {
                 if ($flag_find) {
-                    $consult = $this->back[$value[0]];
+                    $keys = is_array($value[0])?array_keys($value[0])[0]:$value;
+                    if(!$this->back)return;
+                    $consult = $this->back[$keys];
                     $consult = explode(',', $consult);
                     $consult = array_flip($consult);
+
                     $this->back[$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
+
                 } else {
                     foreach ($this->back as $_key => $_val) {
                         $consult = $_val[$value[0]];                //获取对应字段参数
@@ -569,6 +638,7 @@ class Model
 
             }
         }
+
     }
 
     /**
@@ -603,6 +673,14 @@ class Model
             }
         }
         $this->cursor_where = $param;
+
+    }
+    //将字段比对导出
+    protected function _field_comparison(array &$field)
+    {
+        foreach ($field as $key =>$val){
+            if(!isset($this->full_field[$key]))unset($field[$key]);
+        }
     }
 
     /**
