@@ -477,6 +477,10 @@ class Model
             }
         }
 
+        
+        $array = $this->_clearParam($array);
+
+
         return $this->_restrict_prefix($array);
     }
 
@@ -664,16 +668,21 @@ class Model
     protected function _clearParam(?array $param = [])
     {
         $param = empty($param)?$this->param:$param;
-
+        $list = [];
+        foreach ($this->full_field as $key=>$value){
+            $list[] = "{$value}.{$key}";
+            $list[] = $key;
+        }
         foreach ($param as $key => $val){
-            if(is_string($val) && !in_array($key,$this->check_field)){
+            if(is_array($val) && !in_array($val[0],$list)){
                 unset($param[$key]);
-            }else if(is_array($val)&&!in_array(reset($val),$this->check_field)){
+            }else if(!is_numeric($key) && !in_array($key,$list)){
                 unset($param[$key]);
             }
         }
-        $this->cursor_where = $param;
 
+        $this->cursor_where = $param;
+        return $param;
     }
     //将字段比对导出
     protected function _field_comparison(array &$field)
