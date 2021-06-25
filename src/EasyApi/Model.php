@@ -108,9 +108,10 @@ class Model
         $this->setMaster();
         $table = reset($this->tables);
         $this->cursor->where($this->cursor_where);
+        if(isset($this->param[$table->getPrimary()]))
         $this->cursor->where([$table->getPrimary()=>$this->param[$table->getPrimary()]]);
         $table->verifyFiled($array);
-        $this->cursor->update($array);
+        return $this->cursor->update($array);
     }
 
     public function delete(?array $array = [])
@@ -260,6 +261,11 @@ class Model
         }
         $this->_clearParam();
         $this->cursor->where($array);
+        return $this;
+    }
+
+    public function whereOr($field, $op = null, $condition = null){
+        $this->cursor->whereOr($field, $op, $condition);
         return $this;
     }
 
