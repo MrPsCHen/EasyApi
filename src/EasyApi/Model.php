@@ -591,52 +591,53 @@ class Model
         $table = reset($this->tables);
 
         foreach ($this->_extra as $key => $value) {
-            if ($value[1]) {            if(is_array($value[0])){
-                $keys = array_keys($value[0]);
-                $vals = array_values($value[0]);
-                if($value[1])$back = [$this->back];
-                $condition = array_column($back, reset($keys));
-                $searchFiled = reset($vals);
-            }else if ($value[1]) {
-                $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $value[0]);
-                $searchFiled = $this->tables[$key]->getPrimary();
-            } else {
-                $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $table->getPrimary());
-                $searchFiled = $table->getPrimary();
-            }
-            $key_table = $this->choseTable($key);
-            $fields = implode(',',array_values($key_table->outFiled()));
-            $fields = empty($fields)?'*':$fields;
-            $extra_arr = Db::table($key)
-                ->where([[$searchFiled, 'IN', is_array($condition) ? implode(',', $condition) : $condition]])
-//                ->fetchSql()
-                ->column($fields.",{$key_table->getPrimary()}", $searchFiled);
-
-            $key = empty($key_table->getExtraAlias())?$key:$key_table->getExtraAlias();
-
             if ($value[1]) {
-                if ($flag_find) {
-                    $keys = is_array($value[0])?array_keys($value[0])[0]:$value;
-                    if(!$this->back)return;
-                    $consult = $this->back[$keys];
-                    $consult = explode(',', $consult);
-                    $consult = array_flip($consult);
-
-                    $this->back[$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
-
+                if (is_array($value[0])) {
+                    $keys = array_keys($value[0]);
+                    $vals = array_values($value[0]);
+                    if ($value[1]) $back = [$this->back];
+                    $condition = array_column($back, reset($keys));
+                    $searchFiled = reset($vals);
+                } else if ($value[1]) {
+                    $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $value[0]);
+                    $searchFiled = $this->tables[$key]->getPrimary();
                 } else {
-                    foreach ($this->back as $_key => $_val) {
-                        $consult = $_val[$value[0]];                //获取对应字段参数
-                        $consult = explode(',', $consult);  //可能存在多个值，进行分割
-                        $consult = array_flip($consult);             //键值对调，进行数组合并
-                        $this->back[$_key][$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
-                    }
+                    $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $table->getPrimary());
+                    $searchFiled = $table->getPrimary();
                 }
+                $key_table = $this->choseTable($key);
+                $fields = implode(',', array_values($key_table->outFiled()));
+                $fields = empty($fields) ? '*' : $fields;
+                $extra_arr = Db::table($key)
+                    ->where([[$searchFiled, 'IN', is_array($condition) ? implode(',', $condition) : $condition]])
+//                ->fetchSql()
+                    ->column($fields . ",{$key_table->getPrimary()}", $searchFiled);
+
+                $key = empty($key_table->getExtraAlias()) ? $key : $key_table->getExtraAlias();
+
+                if ($value[1]) {
+                    if ($flag_find) {
+                        $keys = is_array($value[0]) ? array_keys($value[0])[0] : $value;
+                        if (!$this->back) return;
+                        $consult = $this->back[$keys];
+                        $consult = explode(',', $consult);
+                        $consult = array_flip($consult);
+
+                        $this->back[$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
+
+                    } else {
+                        foreach ($this->back as $_key => $_val) {
+                            $consult = $_val[$value[0]];                //获取对应字段参数
+                            $consult = explode(',', $consult);  //可能存在多个值，进行分割
+                            $consult = array_flip($consult);             //键值对调，进行数组合并
+                            $this->back[$_key][$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
+                        }
+                    }
 
 
+                }
             }
         }
-
     }
 
     /**
