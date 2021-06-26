@@ -63,10 +63,10 @@ class Model
     public function select()
     {
 
-        $this->_outFiledFull();      //导出字段
-        $this->_join();             //添加聚合表
-        $this->_clearParam();       //清理不存在参数
-        $this->_decorate_prefix();  //修饰词前缀
+        $this->_outFiledFull();                 //导出字段
+        $this->_join();                         //添加聚合表
+        $this->_clearParam($this->param);       //清理不存在参数
+        $this->_decorate_prefix();              //修饰词前缀
 
         $this->cursor->page($this->page, $this->limit);
 
@@ -94,10 +94,10 @@ class Model
 
     public function count()
     {
-        $this->_outFiledFull();      //导出字段
-        $this->_join();             //添加聚合表
-        $this->_clearParam();       //清理不存在参数
-        $this->_decorate_prefix();  //修饰词前缀
+        $this->_outFiledFull();                 //导出字段
+        $this->_join();                         //添加聚合表
+        $this->_clearParam($this->param);       //清理不存在参数
+        $this->_decorate_prefix();              //修饰词前缀
         $this->cursor->where($this->_decorate($this->cursor_where));
         return $this->cursor->page(0, 1)->count();
     }
@@ -147,6 +147,7 @@ class Model
      */
     public function add(array $data = [], bool $getLastInsID = false)
     {
+        $this->setMaster();
         $data = $this->_clearParam($data);
         $this->cursor->insert($data,$getLastInsID);
     }
@@ -212,12 +213,12 @@ class Model
 
     public function has():bool
     {
-        $this->_outFiledFull();      //导出字段
-        $this->_join();             //添加聚合表
-        $this->_clearParam();       //清理不存在参数
-        $this->_decorate_prefix();  //修饰词前缀
-        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
+        $this->_outFiledFull();                 //导出字段
+        $this->_join();                         //添加聚合表
+        $this->_clearParam($this->param);       //清理不存在参数
+        $this->_decorate_prefix();              //修饰词前缀
         $this->cursor->where($this->_decorate($this->cursor_where));
+        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
         return $this->cursor->count()>0;
     }
 
@@ -267,7 +268,7 @@ class Model
                 }
             }
         }
-        $this->_clearParam();
+        $this->_clearParam($this->param);       //清理不存在参数
         $this->cursor->where($array);
         $this->cursor_where = $array;
         return $this;
@@ -477,10 +478,7 @@ class Model
                 $array[] = [$this->full_field[$k] . '.' . $k, '=', $v];
             }
         }
-
-        
         $array = $this->_clearParam($array);
-
 
         return $this->_restrict_prefix($array);
     }
