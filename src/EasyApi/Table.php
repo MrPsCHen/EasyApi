@@ -164,7 +164,7 @@ class Table implements \EasyApi\interFaces\Table
 
             $back = explode('(',trim($this->field_type[$filed],')'));
             $length = 999999;
-            if($back[0]!='text' && $back[0]!='datetime'){
+            if($back[0]!='text' && $back[0]!='datetime' && $back[0]!='int'){
                 list($type,$length) = explode('(',trim($this->field_type[$filed],')'));
             }else{
                 $type = reset($back);
