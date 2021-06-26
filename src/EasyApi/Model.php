@@ -591,14 +591,13 @@ class Model
         $table = reset($this->tables);
 
         foreach ($this->_extra as $key => $value) {
-            if(is_array($value[0])){
+            if ($value[1]) {            if(is_array($value[0])){
                 $keys = array_keys($value[0]);
                 $vals = array_values($value[0]);
                 if($value[1])$back = [$this->back];
                 $condition = array_column($back, reset($keys));
                 $searchFiled = reset($vals);
             }else if ($value[1]) {
-
                 $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $value[0]);
                 $searchFiled = $this->tables[$key]->getPrimary();
             } else {
