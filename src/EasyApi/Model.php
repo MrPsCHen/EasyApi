@@ -307,9 +307,12 @@ class Model
             }else if(is_array($value)){
                 if(!in_array($value[0],$filed_full)&&!isset($this->full_field[$value[0]])){
                     unset($array[$key]);
+                }else{
+                    $array[$key][0] = "{$this->full_field[$value[0]]}.{$value[0]}";
                 }
             }
         }
+        
         $this->_clearParam($this->param);       //清理不存在参数
         $this->cursor->where($array);
         $this->cursor_where = $array;
