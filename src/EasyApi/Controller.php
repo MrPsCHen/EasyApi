@@ -5,6 +5,7 @@ namespace EasyApi;
 
 
 use app\model\index;
+use http\Params;
 
 class Controller
 {
@@ -42,19 +43,25 @@ class Controller
      * 数据表查询方法  {code:200,msg:success,data:{page:1,limit:20,total:0,rows:[]}}
      * @return false|string|\think\response\Json
      */
-
     public function show()
     {
         $this->filterParamNull();
         $this->model->autoParam($this->param);
         $this->model->select();
-
         $this->back = $this->model->getBack();
         return Helper::success([
             'page'  =>$this->model->getPage(),
             'limit' =>$this->model->getLimit(),
             'total' =>$this->model->count(),
             'rows'  =>$this->model->getBack(),
+        ]);
+    }
+    public function formatShow(){
+        return Helper::success([
+            'page'  =>$this->model->getPage(),
+            'limit' =>$this->model->getLimit(),
+            'total' =>$this->model->count(),
+            'rows'  =>$this->back,
         ]);
     }
 
@@ -79,7 +86,6 @@ class Controller
         $this->back = $this->model->find();
         return Helper::success($this->back);
     }
-
 
     /**
      *
@@ -137,7 +143,7 @@ class Controller
             if(empty($val)&&strlen($val)<=0)unset($this->param[$key]);
         };
         unset($this->param['filter_param_null']);
-
+        return $this;
     }
     /**
      * 过滤指定参数
@@ -145,8 +151,9 @@ class Controller
     public function filter(array $param)
     {
         foreach ($param as $key=>$value){
-            if(isset($this->param[$value]))unset($param[$value]);
+            if(isset($this->param[$value]))unset($this->param[$value]);
         }
+        return $this;
 
     }
 
@@ -156,9 +163,10 @@ class Controller
      */
     public function input(array $param)
     {
-        foreach ($param as $key=>$value){
-            if(!isset($this->param[$value]))unset($param[$value]);
+        foreach ($this->param as $key=>$value){
+            if(!in_array($key,$param))unset($this->param[$key]);
         }
+        return $this;
 
     }
 

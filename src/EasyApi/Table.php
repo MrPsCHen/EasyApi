@@ -18,12 +18,12 @@ class Table implements \EasyApi\interFaces\Table
 
 
     protected string    $extra_alias        = '';//别名
+    protected array     $extra_where        = [];
     protected array     $alias              = [];//字段别名
     protected array     $display_arr        = [];//显示字段
     protected array     $filter_arr         = [];//过滤字段
     protected string    $error_message      = '';
-    protected array     $field_name_display =[];
-
+    protected array     $field_name_display = [];
 
     public function __construct(string $table, string $prefix = '')
     {
@@ -77,19 +77,47 @@ class Table implements \EasyApi\interFaces\Table
     }
 
     /**
+     * 导出字段，并设置别名
      * @param bool $field_prefix
      * @return array
      */
     public function outFiled(bool $field_prefix = true)
     {
         $back = [];
-
         foreach ($this->field_full as $key => $val) {
             if(in_array($val,$this->filter_arr))continue;
             if(!empty($this->display_arr) && !in_array($val,$this->display_arr))continue;
             $field_name = in_array($val,$this->alias)?$this->alias[$val]:"{$this->table}_{$val}";
             $alias = isset($this->alias[$val]) ? " AS `{$this->alias[$val]}`" : " AS `{$field_name}`";
             $back[$field_prefix?$field_name:$val] = "`{$this->getTable()}`.`{$val}`" . ($field_prefix ? $alias : "");
+        }
+        return $back;
+    }
+
+    /**
+     * 导出字段最终显示
+     */
+    public function outFiledPresent(){
+        $back = [];
+        foreach ($this->field_full as $key => $val) {
+            if(in_array($val,$this->filter_arr))continue;
+            if(!empty($this->display_arr) && !in_array($val,$this->display_arr))continue;
+            $field_name = in_array($val,$this->alias)?$this->alias[$val]:"{$this->table}_{$val}";
+            $alias = isset($this->alias[$val]) ? $this->alias[$val] : $field_name;
+            $back[$alias] = null;
+        }
+        return $back;
+    }
+
+    /**
+     * 返回最终呈现的字段,[原始字段名称]
+     */
+    public function outFiledReal(){
+        $back = [];
+        foreach ($this->field_full as $key => $val) {
+            if(in_array($val,$this->filter_arr))continue;
+            if(!empty($this->display_arr) && !in_array($val,$this->display_arr))continue;
+            $back[] = $val;
         }
         return $back;
     }
@@ -164,7 +192,7 @@ class Table implements \EasyApi\interFaces\Table
 
             $back = explode('(',trim($this->field_type[$filed],')'));
             $length = 999999;
-            if($back[0]!='text' && $back[0]!='datetime' && $back[0]!='int'){
+            if(!in_array($back[0],['text','datetime','int','date','time'])){
                 list($type,$length) = explode('(',trim($this->field_type[$filed],')'));
             }else{
                 $type = reset($back);
@@ -227,7 +255,13 @@ class Table implements \EasyApi\interFaces\Table
      * @param array $param
      */
     public function verifyFiled(array $param){
-       return true;
+        foreach ($param as $key=>$item)
+        {
+            if(!$this->filedVerifier($key,$item)){
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -312,6 +346,24 @@ class Table implements \EasyApi\interFaces\Table
         $this->extra_alias = $extra_alias;
         return $this;
     }
+
+    /**
+     * @return array
+     */
+    public function getExtraWhere(): array
+    {
+        return $this->extra_where;
+    }
+
+    /**
+     * @param array $extra_where
+     */
+    public function setExtraWhere(array $extra_where): void
+    {
+        $this->extra_where = $extra_where;
+    }
+
+
 
 
 

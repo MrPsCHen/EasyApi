@@ -6,6 +6,7 @@ namespace EasyApi;
 
 use think\db\BaseQuery;
 use think\db\Raw;
+use think\Exception;
 use think\facade\Db;
 
 class Model
@@ -34,6 +35,8 @@ class Model
 
     public function __construct(string $table = '', string $prefix = '')
     {
+        $this->table = $table;
+        $this->prefix= $prefix;
         if (empty($prefix . $table)) {
             if (empty($this->table . $this->prefix)) {
                 $table = get_class($this);
@@ -53,9 +56,10 @@ class Model
         return $this;
     }
 
-    public function table(string $table, string $prefix = '')
+    public function table(string $table, string $prefix = ''):Table
     {
         $this->tables[$prefix . $table] = new Table($table, $prefix);
+        return $this->tables[$prefix . $table];
     }
 
     /*--------------------------------------------------------------------------------------------------------------------*/
@@ -70,6 +74,7 @@ class Model
 
         $this->cursor->page($this->page, $this->limit);
 
+        foreach ($this->_extra as $k=>$v){$this->_extra[$k][1]=false;}
 
         $this->cursor->where($this->_decorate($this->cursor_where));
         $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
@@ -84,6 +89,7 @@ class Model
         $this->_outFiledFull();
         $this->_join();
         $this->_decorate_prefix();
+
         $this->cursor->where($this->_decorate($this->cursor_where));
         $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
         $this->back = $this->cursor->find();
@@ -129,13 +135,41 @@ class Model
         return $back?true:false;
     }
 
-    public function insert()
+    /**
+     * 插入记录
+     * @access public
+     * @param array   $data         数据
+     * @param boolean $getLastInsID 返回自增主键
+     * @return integer|string
+     */
+    public function insert(array $data = [], bool $getLastInsID = false)
     {
-
         $this->setMaster();
-        $back = $this->cursor->inster($this->param);
+        $data = empty($data)?$this->param:$data;
+        $data = $this->_clearParam($data);
+        $back = $this->cursor->insert($data,$getLastInsID);
         $this->Last_Insert_Id = $this->cursor->getLastInsID();
         return $back;
+    }
+
+    /**
+     * 批量插入记录
+     * @access public
+     * @param array   $dataSet 数据集
+     * @param integer $limit   每次写入数据限制
+     * @return integer
+     */
+    public function insertAll(array $dataSet = [], int $limit = 0)
+    {
+        $this->setMaster();
+
+        $data = empty($dataSet)?$this->param:$dataSet;
+
+        foreach ($data as $key=>$val){
+            $data[$key] =$this->_clearParam($val);
+            }
+
+        return $this->cursor->insertAll($data,$limit);
     }
 
     /**
@@ -149,13 +183,20 @@ class Model
     {
         $this->setMaster();
         $data = $this->_clearParam($data);
+        $table = $this->choseTable();
+        if(!$table->verifyFiled($data)){
+            $this->error_message = $table->getErrorMessage();
+            return false;
+        }
         $this->cursor->insert($data,$getLastInsID);
+        return true;
     }
 
     public function save(array $param = [])
     {
 
         $this->_outFiledFull();
+
         //判断参数
         if (empty($param) && empty($param = $this->param)){
             $this->error_message = '请求参数不能为空';
@@ -164,18 +205,16 @@ class Model
 
         //验证字段类型和长度
         if (!$this->filedVerifier($param))return false;
-
-
         $this->setMaster();
         $table = $this->choseTable();
-
-
-
         try {
+
+
             if (isset($param[$table->getPrimary()])) {
                 $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
                 return $this->cursor->where([$table->getPrimary() => [$param[$table->getPrimary()]]])->update($param);
             } else {
+
                 //判断参数是否必填
                 if(!$this->filedNotNullVerifier($param))return false;
                 $result = $this->cursor->insert($param);
@@ -213,12 +252,15 @@ class Model
 
     public function has():bool
     {
+
         $this->_outFiledFull();                 //导出字段
         $this->_join();                         //添加聚合表
         $this->_clearParam($this->param);       //清理不存在参数
         $this->_decorate_prefix();              //修饰词前缀
+
         $this->cursor->where($this->_decorate($this->cursor_where));
-        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
+        if(!empty($this->_decorate($this->cursor_where_or)))$this->cursor->whereOr($this->_decorate($this->cursor_where_or));
+
         return $this->cursor->count()>0;
     }
 
@@ -467,6 +509,7 @@ class Model
      */
     protected function _decorate(array $array = [])
     {
+
         foreach ($array as $k => $v) {
             if (in_array($k, $this->cursor_like) && isset($this->full_field[$k])) {
                 $array[] = [$this->full_field[$k] . '.' . $k, 'LIKE', "%{$v}%"];
@@ -587,57 +630,56 @@ class Model
     protected function _extra_join(bool $flag_find = false)
     {
         $table = reset($this->tables);
-
         foreach ($this->_extra as $key => $value) {
-            if ($value[1]) {
-                if (is_array($value[0])) {
-                    $keys = array_keys($value[0]);
-                    $vals = array_values($value[0]);
-                    if ($value[1]) $back = [$this->back];
-                    $condition = array_column($back, reset($keys));
-                    $searchFiled = reset($vals);
-                } else if ($value[1]) {
-                    $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $value[0]);
-                    $searchFiled = $this->tables[$key]->getPrimary();
-                } else {
-                    $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $table->getPrimary());
-                    $searchFiled = $table->getPrimary();
+            $key_table = $this->choseTable($key);
+
+            if(is_array($value[0])){
+                $value_key = array_keys($value[0]);
+                $needleFiled = reset($value_key);   //主表查询字段
+                $searchFiled = reset($value[0]);    //对象表查询字段
+            }else{
+                $needleFiled = $value[0];
+                $searchFiled = $key_table->getPrimary();
+            }
+
+            $condition = array_column($value[1]?[$this->back]:$this->back,$needleFiled);
+
+
+            $fields = array_values($key_table->outFiled());
+            !in_array($searchFiled,$key_table->outFiledReal()) && $fields[]= $searchFiled;
+            $fields = implode(',', $fields);
+            $fields = empty($fields) ? '*' : $fields;
+
+            $extra_arr = Db::table($key)
+                ->where([[$searchFiled,'IN',implode(',',$condition)]])
+                ->where($key_table->getExtraWhere())
+                ->column("{$key_table->getPrimary()},$fields");
+            //存入进原数组的键名
+
+            $keyName = empty($key_table->getExtraAlias()) ? $key : $key_table->getExtraAlias();
+            $result = [];
+
+            if($value[1]){//此为find查询
+                foreach ($extra_arr as $item){
+                    $result[] = array_intersect_key($item,$key_table->outFiledPresent());
                 }
-                $key_table = $this->choseTable($key);
-                $fields = implode(',', array_values($key_table->outFiled()));
-                $fields = empty($fields) ? '*' : $fields;
-                $extra_arr = Db::table($key)
-                    ->where([[$searchFiled, 'IN', is_array($condition) ? implode(',', $condition) : $condition]])
-//                ->fetchSql()
-                    ->column($fields . ",{$key_table->getPrimary()}", $searchFiled);
+                $this->back[$keyName] = $result;
+            }else{//此为select查询
 
-                $key = empty($key_table->getExtraAlias()) ? $key : $key_table->getExtraAlias();
-
-                if ($value[1]) {
-                    if ($flag_find) {
-                        $keys = is_array($value[0]) ? array_keys($value[0])[0] : $value;
-                        if (!$this->back) return;
-                        $consult = $this->back[$keys];
-                        $consult = explode(',', $consult);
-                        $consult = array_flip($consult);
-
-                        $this->back[$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
-
-                    } else {
-                        foreach ($this->back as $_key => $_val) {
-                            $consult = $_val[$value[0]];                //获取对应字段参数
-                            $consult = explode(',', $consult);  //可能存在多个值，进行分割
-                            $consult = array_flip($consult);             //键值对调，进行数组合并
-                            $this->back[$_key][$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
+                foreach ($this->back as $key=>$item){
+                    $idx = explode(',',$item[$needleFiled]);
+                    $idx = array_flip($idx);
+                    foreach ($extra_arr as $k=>$v){
+                        if($v[$searchFiled] == $item[$needleFiled]){
+                            $extra_arr[$k] = array_intersect_key($v,$key_table->outFiledPresent());
+                            $this->back[$key][$keyName][] = &$extra_arr[$k];
                         }
                     }
-
-
+//                    dd($item[$needleFiled]);
                 }
             }
         }
     }
-
     /**
      * @param array $array 格式化参数
      */
@@ -660,8 +702,14 @@ class Model
      */
     protected function _clearParam(?array $param = [])
     {
-        $param = empty($param)?$this->param:$param;
+        $this->_outFiledFull();
         $list = [];
+        try {
+            if(empty($this->full_field))throw new Exception('未找到数据表');
+        }catch (Exception $e){
+            response()->content(Helper::fatal("系统异常",202,['message'=>"未找到数据表[{$this->prefix}{$this->table}]"])->getContent())->send();
+            exit;
+        }
         foreach ($this->full_field as $key=>$value){
             $list[] = "{$value}.{$key}";
             $list[] = $key;

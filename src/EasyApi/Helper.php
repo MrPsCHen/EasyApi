@@ -16,14 +16,14 @@ class Helper
         return self::assemble();
     }
 
-    public static function warning(string $msg = 'warning',int $code = 201,array $data = []){
+    public static function warning(string $msg = 'warning',int $code = 201,?array $data = []){
         self::$CODE = $code;
         self::$MSG  = $msg;
         self::$DATA = $data;
         return self::assemble();
     }
 
-    public static function fatal(string $msg = 'error',int $code = 202,array $data = []){
+    public static function fatal(string $msg = 'error',int $code = 202,?array $data = []){
         self::$CODE = $code;
         self::$MSG  = $msg;
         self::$DATA = $data;
@@ -33,7 +33,7 @@ class Helper
     private static function assemble(){
         $back = ['code'=>self::$CODE];
         $back['msg'] = self::$MSG = empty(self::$MSG)?'':self::$MSG;
-        $back['data'] = empty(self::$DATA)?[]:self::$DATA;
+        self::$DATA && $back['data'] = empty(self::$DATA)?[]:self::$DATA;
         if(function_exists("json")){
             return json($back);
         }
@@ -50,11 +50,11 @@ class Helper
      * @param array $data
      * @return \think\response\Json
      */
-    public static function auto(bool $status = true,array $msg = [],array $data = []){
+    public static function auto(bool $status = true,array $msg = [],?array $data = [],?int $code = 201){
         if($status){
             return self::success($data,empty($msg[1])?'success':$msg[1]);
         }else{
-            return self::warning(empty($msg[0])?'error':$msg[0],201,$data);
+            return self::warning(empty($msg[0])?'error':$msg[0],$code,$data);
         }
     }
 
