@@ -6,20 +6,27 @@ namespace EasyApi;
 
 use app\model\index;
 use http\Params;
+use think\Request;
 
+/**
+ * @property mixed|null uid
+ */
 class Controller
 {
     protected ?Model    $model      = null; //数据模型
     protected array     $param      = [];   //输入参数
     protected string    $path       = '';   //模型路径
     protected           $back;              //返回数据
-    protected           $middleware = [];   //
+    protected array     $middleware = [];   //
 
 
     public function __construct()
     {
-        if(function_exists('request'))$this->param = request()->param();
+        $this->param = $this->request()??[];
+
         if($model = $this->scoutClassName())$this->implant(new $model());
+
+        
         $this->param = request()->param();
         if(isset(request()->uid))$this->uid = request()->uid;
 
@@ -109,42 +116,6 @@ class Controller
         }
         return $this;
     }
-
-
-/*--------------------------------------------------------------------------------------------------------------------*/
-//辅助方法
-    /**
-     * 查找类名作为模型的名称
-     */
-    protected function scoutClassName(){
-
-
-        $path = 'app\\';//路径依赖
-        !empty($app_name = app('http')->getName()) && $app_name = $app_name."\\";//应用依赖
-        $path.= $app_name;
-        $path.= "model\\";
-        $class = basename(str_replace('\\', '/', get_class($this)));//通过继承类名获取
-        if(class_exists($path.strtolower($class))){
-            return $path.strtolower($class);
-        }else if (class_exists($path.$class)){
-            return $path.$class;
-        }else{
-            return false;
-        }
-    }
-
-    /**
-     * 过滤空输入参数
-     */
-    protected function filterParamNull(){
-        //判断是否过滤空参数
-        if(isset($this->param['filter_param_null'])&&$this->param['filter_param_null'] =='false')return;
-        foreach ($this->param as $key=>$val){
-            if(empty($val)&&strlen($val)<=0)unset($this->param[$key]);
-        };
-        unset($this->param['filter_param_null']);
-        return $this;
-    }
     /**
      * 过滤指定参数
      */
@@ -169,5 +140,56 @@ class Controller
         return $this;
 
     }
+
+/*--------------------------------------------------------------------------------------------------------------------*/
+//辅助方法
+    /**
+     * 查找类名作为模型的名称
+     */
+    protected function scoutClassName(){
+        $class = basename(str_replace('\\', '/', get_class($this)));//通过继承类名获取
+        print_r($class);
+        exit;
+        $path = 'app\\';//路径依赖
+        !empty($app_name = \app('http')->getName()) && $app_name = $app_name."\\";//应用依赖
+        $path.= $app_name;
+        $path.= "model\\";
+        $class = basename(str_replace('\\', '/', get_class($this)));//通过继承类名获取
+        if(class_exists($path.strtolower($class))){
+            return $path.strtolower($class);
+        }else if (class_exists($path.$class)){
+            return $path.$class;
+        }else{
+            return false;
+        }
+        dd("?");
+
+    }
+
+
+    /**
+     * 过滤空输入参数
+     */
+    protected function filterParamNull(){
+        //判断是否过滤空参数
+        if(isset($this->param['filter_param_null'])&&$this->param['filter_param_null'] =='false')return;
+        foreach ($this->param as $key=>$val){
+            if(empty($val)&&strlen($val)<=0)unset($this->param[$key]);
+        };
+        unset($this->param['filter_param_null']);
+        return $this;
+    }
+
+
+    protected function request():?Request
+    {
+        if(function_exists('request')){
+            return request();
+        }else{
+            return null;
+        }
+    }
+
+
 
 }
