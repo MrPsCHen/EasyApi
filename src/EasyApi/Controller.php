@@ -72,14 +72,14 @@ class Controller
         ]);
     }
 
-    public function save(array $param = [])
+    public function save(array $param = []): \think\response\Json
     {
         $param = empty($param)?$this->param:$param;
         $result = $this->model->save($this->param);
         return Helper::auto($result,[$this->model->error()]);
     }
 
-    public function del()
+    public function del(): \think\response\Json
     {
         return Helper::auto($this->model->delete($this->param),[$this->model->error()]);
     }
@@ -97,7 +97,7 @@ class Controller
     /**
      *
      */
-    public function required(array $fields = [],?array $param = null)
+    public function required(array $fields = [],?array $param = null): Controller
     {
         $param = $param??$this->param;
         foreach ($fields as $key=>$val)
@@ -119,7 +119,7 @@ class Controller
     /**
      * 过滤指定参数
      */
-    public function filter(array $param)
+    public function filter(array $param): Controller
     {
         foreach ($param as $key=>$value){
             if(isset($this->param[$value]))unset($this->param[$value]);
@@ -132,7 +132,7 @@ class Controller
      * 只接受参数其余过滤
      * @param array $param
      */
-    public function input(array $param)
+    public function input(array $param): Controller
     {
         foreach ($this->param as $key=>$value){
             if(!in_array($key,$param))unset($this->param[$key]);

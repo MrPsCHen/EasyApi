@@ -17,7 +17,7 @@ class Model
     protected array $tables         = [];   //表对象
     protected int $page             = 1;    //页码
     protected int $limit            = 20;   //条数
-    protected $cursor               = null; //游标对象
+    protected  $cursor              = null; //游标对象
     protected ?array $back          = [];   //返回对象
     protected array $_ploy          = [];   //聚合参数
     protected array $_extra         = [];   //扩展参数
@@ -30,7 +30,7 @@ class Model
     protected array $cursor_where_or= [];
     protected array $cursor_join    = [];
     protected string $error_message = '';
-    protected array $param          = [];
+    protected ?array $param         = [];
     protected int $Last_Insert_Id   = 0;
 
     public function __construct(string $table = '', string $prefix = '')
@@ -159,7 +159,7 @@ class Model
      * @param integer $limit   每次写入数据限制
      * @return integer
      */
-    public function insertAll(array $dataSet = [], int $limit = 0)
+    public function insertAll(array $dataSet = [], int $limit = 0): int
     {
         $this->setMaster();
 
@@ -245,11 +245,15 @@ class Model
      * @param string $key   索引
      * @return array
      */
-    public function column($field, string $key = '')
+    public function column($field, string $key = ''): array
     {
         return $this->cursor->column($field,$key);
     }
 
+    /**
+     * 是否有条数据
+     * @return bool
+     */
     public function has():bool
     {
 
@@ -274,7 +278,8 @@ class Model
      * @param mixed $field 字段信息
      * @return $this
      */
-    public function field($field){
+    public function field($field): Model
+    {
         $this->cursor->field($field);
         return $this;
     }
@@ -286,13 +291,13 @@ class Model
      * @param string $order 排序
      * @return $this
      */
-    public function order($field, string $order = '')
+    public function order($field, string $order = ''): Model
     {
         $this->cursor->order($field, $order);
         return $this;
     }
 
-    public function where(?array $array)
+    public function where(?array $array): Model
     {
 
 		if(empty($this->full_field))$this->_outFiledFull();
@@ -325,7 +330,8 @@ class Model
      * @param mixed $field     查询字段
      * @return $this
      */
-    public function whereOr($field){
+    public function whereOr($field): Model
+    {
         foreach ($field as $key =>$item){
             if(is_array($item)){
                 $this->cursor_where_or[] = $field;
@@ -420,8 +426,9 @@ class Model
             $this->limit = $array['size'];
             unset($array['size']);
         }
+
         $this->param = $array;
-        $this->cursor_where = $array;
+        $this->cursor_where = $this->param;
 
     }
 
@@ -703,7 +710,7 @@ class Model
     /**
      * 清理参数
      */
-    protected function _clearParam(?array $param = [])
+    protected function _clearParam(?array $param = []): ?array
     {
         $this->_outFiledFull();
         $list = [];
@@ -762,10 +769,8 @@ class Model
      * 验证非空字段
      * @param array|null $param
      */
-    protected function filedNotNullVerifier(array &$param = null)
+    protected function filedNotNullVerifier(array &$param = null): bool
     {
-
-
         if($this->choseTable()->verifyNotNullFiled(array_keys($param))){
 
             return true;
