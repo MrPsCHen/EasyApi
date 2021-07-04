@@ -5,8 +5,9 @@ namespace EasyApi;
 
 
 use think\db\BaseQuery;
+use think\db\concern\WhereQuery;
+use think\db\Query;
 use think\db\Raw;
-use think\Exception;
 use think\facade\Db;
 
 class Model
@@ -72,12 +73,12 @@ class Model
         $this->_clearParam($this->param);       //清理不存在参数
         $this->_decorate_prefix();              //修饰词前缀
 
+//        dd($this->_decorate($this->cursor_where));
         $this->cursor->page($this->page, $this->limit);
-
         foreach ($this->_extra as $k=>$v){$this->_extra[$k][1]=false;}
-
         $this->cursor->where($this->_decorate($this->cursor_where));
         $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
+//        dd($this->cursor->fetchSql()->select());
         $this->back = $this->cursor->select()->toArray();
         $this->_extra_join();
         return $this;
@@ -89,7 +90,6 @@ class Model
         $this->_outFiledFull();
         $this->_join();
         $this->_decorate_prefix();
-
         $this->cursor->where($this->_decorate($this->cursor_where));
         $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
         $this->back = $this->cursor->find();
@@ -196,7 +196,6 @@ class Model
     {
 
         $this->_outFiledFull();
-
         //判断参数
         if (empty($param) && empty($param = $this->param)){
             $this->error_message = '请求参数不能为空';
@@ -211,11 +210,20 @@ class Model
 
 
             if (isset($param[$table->getPrimary()])) {
+                    $this->error_message = '缺少参数，参数';
+                    return false;
+                }
+                foreach ($param as $key =>$val){
+
+                    if(!isset($this->full_field[$key]))unset($param[$key]);
+                }
                 $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
-                return $this->cursor->where([$table->getPrimary() => [$param[$table->getPrimary()]]])->update($param);
+                $result = $this->cursor->where([$table->getPrimary() => [$param[$table->getPrimary()]]])->update($param);
+
             } else {
 
                 //判断参数是否必填
+
                 if(!$this->filedNotNullVerifier($param))return false;
                 $result = $this->cursor->insert($param);
                 $this->Last_Insert_Id = $this->cursor->getLastInsID();
@@ -233,7 +241,8 @@ class Model
                     }
                     $back = implode('、',$show);
                     $this->error_message = $back.'不可重复';
-                    
+                default:
+                    $this->error_message = $e->getCode().":{$e->getMessage()}";
             }
         }
         return false;
@@ -256,15 +265,12 @@ class Model
      */
     public function has():bool
     {
-
-        $this->_outFiledFull();                 //导出字段
-        $this->_join();                         //添加聚合表
-        $this->_clearParam($this->param);       //清理不存在参数
-        $this->_decorate_prefix();              //修饰词前缀
-
+        $this->_outFiledFull();      //导出字段
+        $this->_join();             //添加聚合表
+        $this->_clearParam();       //清理不存在参数
+        $this->_decorate_prefix();  //修饰词前缀
+        $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
         $this->cursor->where($this->_decorate($this->cursor_where));
-        if(!empty($this->_decorate($this->cursor_where_or)))$this->cursor->whereOr($this->_decorate($this->cursor_where_or));
-
         return $this->cursor->count()>0;
     }
 
@@ -294,6 +300,22 @@ class Model
     public function order($field, string $order = ''): Model
     {
         $this->cursor->order($field, $order);
+        return $this;
+    }
+    /**
+     * 指定AND查询条件
+     * @access public
+     * @param mixed $field     查询字段
+     * @param mixed $op        查询表达式
+     * @param mixed $condition 查询条件
+     * @return $this
+     */
+    public function _where($field, $op = null, $condition = null){
+        $this->cursor->where($field, $op, $condition);
+        return $this;
+    }
+    public function _whereOr($field, $op = null, $condition = null){
+        $this->cursor->whereOr($field, $op, $condition);
         return $this;
     }
 
@@ -383,7 +405,6 @@ class Model
         return $this->Last_Insert_Id;
     }
 
-
     /**
      * 指定group查询
      * @access public
@@ -435,9 +456,10 @@ class Model
             $this->limit = $array['size'];
             unset($array['size']);
         }
-
         $this->param = $array;
         $this->cursor_where = $this->param;
+
+        $this->cursor_where = $array;
 
     }
 
@@ -529,15 +551,32 @@ class Model
     protected function _decorate(array $array = [])
     {
 
+        $array = $this->_clearParam($array);
         foreach ($array as $k => $v) {
             if (in_array($k, $this->cursor_like) && isset($this->full_field[$k])) {
                 $array[] = [$this->full_field[$k] . '.' . $k, 'LIKE', "%{$v}%"];
                 unset($array[$k]);
+            }else if(in_array($k, $this->cursor_like) && in_array($k,$this->check_field)){
+                $array[] = [$k,'LIKE',"%{$v}%"];
+                unset($array[$k]);
             } else if (in_array($k, $this->cursor_in) && isset($this->full_field[$k])) {
                 $array[] = [$this->full_field[$k] . '.' . $k, 'IN', is_array($v) ? implode(',', $v) : $v];
                 unset($array[$this->full_field[$k] . '.' . $k]);
+                unset($array[$k]);
             } else if (isset($this->full_field[$k])) {
                 $array[] = [$this->full_field[$k] . '.' . $k, '=', $v];
+                unset($array[$this->full_field[$k] . '.' . $k]);
+                unset($array[$k]);
+            }else {
+                foreach (array_keys($this->tables) as $tbale_key=>$table_item){
+                    if(isset($this->full_field[ltrim(ltrim($k,$table_item),'.')])){
+                        $array[] = [$k, '=', $v];
+                        unset($array[$k]);
+                        break;
+                    }else{
+                        unset($array[$k]);
+                    }
+                }
             }
         }
         $array = $this->_clearParam($array);
@@ -610,6 +649,7 @@ class Model
             $this->full_field = array_merge($this->full_field, array_fill_keys($table->getFieldFull(), $table->getTable()));
         }
 
+
         $this->check_field = array_unique($this->check_field);
     }
 
@@ -649,56 +689,63 @@ class Model
     protected function _extra_join(bool $flag_find = false)
     {
         $table = reset($this->tables);
+
         foreach ($this->_extra as $key => $value) {
-            $key_table = $this->choseTable($key);
-
             if(is_array($value[0])){
-                $value_key = array_keys($value[0]);
-                $needleFiled = reset($value_key);   //主表查询字段
-                $searchFiled = reset($value[0]);    //对象表查询字段
-            }else{
-                $needleFiled = $value[0];
-                $searchFiled = $key_table->getPrimary();
+                $keys = array_keys($value[0]);
+                $vals = array_values($value[0]);
+                if($value[1])$back = [$this->back];
+                $condition = array_column($back, reset($keys));
+                $searchFiled = reset($vals);
+                
+//                $keys = array_keys($value[0]);
+//                $vals = array_values($value[0]);
+//                $condition = array_column($this->back, $key);
+//                dd($this->back);
+//                $searchFiled = reset($keys);
+            }else if ($value[1]) {
+
+                $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $value[0]);
+                $searchFiled = $this->tables[$key]->getPrimary();
+            } else {
+                $condition = $flag_find ? $this->back[$value[0]] : array_column($this->back, $table->getPrimary());
+                $searchFiled = $table->getPrimary();
             }
-
-            $condition = array_column($value[1]?[$this->back]:$this->back,$needleFiled);
-
-
-            $fields = array_values($key_table->outFiled());
-            !in_array($searchFiled,$key_table->outFiledReal()) && $fields[]= $searchFiled;
-            $fields = implode(',', $fields);
-            $fields = empty($fields) ? '*' : $fields;
-
+            $key_table = $this->choseTable($key);
+            $fields = implode(',',array_values($key_table->outFiled()));
+            $fields = empty($fields)?'*':$fields;
             $extra_arr = Db::table($key)
-                ->where([[$searchFiled,'IN',implode(',',$condition)]])
-                ->where($key_table->getExtraWhere())
-                ->column("{$key_table->getPrimary()},$fields");
-            //存入进原数组的键名
+                ->where([[$searchFiled, 'IN', is_array($condition) ? implode(',', $condition) : $condition]])
+//                ->fetchSql()
+                ->column($fields.",{$key_table->getPrimary()}", $searchFiled);
 
-            $keyName = empty($key_table->getExtraAlias()) ? $key : $key_table->getExtraAlias();
-            $result = [];
+            $key = empty($key_table->getExtraAlias())?$key:$key_table->getExtraAlias();
 
-            if($value[1]){//此为find查询
-                foreach ($extra_arr as $item){
-                    $result[] = array_intersect_key($item,$key_table->outFiledPresent());
-                }
-                $this->back[$keyName] = $result;
-            }else{//此为select查询
+            if ($value[1]) {
+                if ($flag_find) {
+                    $keys = is_array($value[0])?array_keys($value[0])[0]:$value;
+                    if(!$this->back)return;
+                    $consult = $this->back[$keys];
+                    $consult = explode(',', $consult);
+                    $consult = array_flip($consult);
 
-                foreach ($this->back as $key=>$item){
-                    $idx = explode(',',$item[$needleFiled]);
-                    $idx = array_flip($idx);
-                    foreach ($extra_arr as $k=>$v){
-                        if($v[$searchFiled] == $item[$needleFiled]){
-                            $extra_arr[$k] = array_intersect_key($v,$key_table->outFiledPresent());
-                            $this->back[$key][$keyName][] = &$extra_arr[$k];
-                        }
+                    $this->back[$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
+
+                } else {
+                    foreach ($this->back as $_key => $_val) {
+                        $consult = $_val[$value[0]];                //获取对应字段参数
+                        $consult = explode(',', $consult);  //可能存在多个值，进行分割
+                        $consult = array_flip($consult);             //键值对调，进行数组合并
+                        $this->back[$_key][$key] = array_merge(array_intersect_key($extra_arr, $consult), []);
                     }
-//                    dd($item[$needleFiled]);
                 }
+
+
             }
         }
+
     }
+
     /**
      * @param array $array 格式化参数
      */
@@ -734,13 +781,13 @@ class Model
             $list[] = $key;
         }
         foreach ($param as $key => $val){
+            if(is_array($val))$param[$key] = implode($value);
             if(is_array($val) && !in_array($val[0],$list)){
                 unset($param[$key]);
             }else if(!is_numeric($key) && !in_array($key,$list)){
                 unset($param[$key]);
             }
         }
-
         $this->cursor_where = $param;
         return $param;
     }
@@ -758,6 +805,7 @@ class Model
     protected function filedVerifier(array &$param = null)
     {
         foreach ($param as $key => $value) {
+            if(is_array($value))continue;
             if (isset($this->full_field[$key])) {
                 if (($this->choseTable($this->full_field[$key])->filedVerifier($key, $value)) == false) {
                     $this->error_message = $this->choseTable($this->full_field[$key])->getErrorMessage();
@@ -780,6 +828,8 @@ class Model
      */
     protected function filedNotNullVerifier(array &$param = null): bool
     {
+
+
         if($this->choseTable()->verifyNotNullFiled(array_keys($param))){
 
             return true;

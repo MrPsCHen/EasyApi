@@ -372,8 +372,4 @@ class Table implements \EasyApi\interFaces\Table
 
 
 
-
-
-
-
 }

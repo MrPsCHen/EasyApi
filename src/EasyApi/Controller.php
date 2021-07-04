@@ -22,17 +22,13 @@ class Controller
 
     public function __construct()
     {
-        $this->param = $this->request()??[];
-
+        if(function_exists('request'))$this->param = request()->param();
         if($model = $this->scoutClassName())$this->implant(new $model());
-
-        
         $this->param = request()->param();
         if(isset(request()->uid))$this->uid = request()->uid;
-
     }
 
-    public function implant(Model $model = null){
+    public function implant(?Model $model = null){
         $this->model = $model;
     }
 
@@ -94,6 +90,7 @@ class Controller
         return Helper::success($this->back);
     }
 
+
     /**
      *
      */
@@ -147,10 +144,10 @@ class Controller
      * 查找类名作为模型的名称
      */
     protected function scoutClassName(){
-        $class = basename(str_replace('\\', '/', get_class($this)));//通过继承类名获取
-   
+
+
         $path = 'app\\';//路径依赖
-        !empty($app_name = \app('http')->getName()) && $app_name = $app_name."\\";//应用依赖
+        !empty($app_name = app('http')->getName()) && $app_name = $app_name."\\";//应用依赖
         $path.= $app_name;
         $path.= "model\\";
         $class = basename(str_replace('\\', '/', get_class($this)));//通过继承类名获取
@@ -161,9 +158,7 @@ class Controller
         }else{
             return false;
         }
-
     }
-
 
     /**
      * 过滤空输入参数
@@ -177,17 +172,27 @@ class Controller
         unset($this->param['filter_param_null']);
         return $this;
     }
-
-
-    protected function request():?Request
+    /**
+     * 过滤指定参数
+     */
+    public function filter(array $param)
     {
-        if(function_exists('request')){
-            return request();
-        }else{
-            return null;
+        foreach ($param as $key=>$value){
+            if(isset($this->param[$value]))unset($param[$value]);
         }
+
     }
 
+    /**
+     * 只接受参数其余过滤
+     * @param array $param
+     */
+    public function input(array $param)
+    {
+        foreach ($param as $key=>$value){
+            if(!isset($this->param[$value]))unset($param[$value]);
+        }
 
+    }
 
 }
