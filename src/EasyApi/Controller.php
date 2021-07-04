@@ -148,8 +148,7 @@ class Controller
      */
     protected function scoutClassName(){
         $class = basename(str_replace('\\', '/', get_class($this)));//通过继承类名获取
-        print_r($class);
-        exit;
+   
         $path = 'app\\';//路径依赖
         !empty($app_name = \app('http')->getName()) && $app_name = $app_name."\\";//应用依赖
         $path.= $app_name;
@@ -162,7 +161,6 @@ class Controller
         }else{
             return false;
         }
-        dd("?");
 
     }
 

@@ -384,7 +384,16 @@ class Model
     }
 
 
-
+    /**
+     * 指定group查询
+     * @access public
+     * @param string|array $group GROUP
+     * @return $this
+     */
+    public function group($group){
+        $this->cursor->group($group);
+        return $this;
+    }
 
 
 
