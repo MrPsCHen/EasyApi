@@ -172,27 +172,5 @@ class Controller
         unset($this->param['filter_param_null']);
         return $this;
     }
-    /**
-     * 过滤指定参数
-     */
-    public function filter(array $param)
-    {
-        foreach ($param as $key=>$value){
-            if(isset($this->param[$value]))unset($param[$value]);
-        }
-
-    }
-
-    /**
-     * 只接受参数其余过滤
-     * @param array $param
-     */
-    public function input(array $param)
-    {
-        foreach ($param as $key=>$value){
-            if(!isset($this->param[$value]))unset($param[$value]);
-        }
-
-    }
 
 }
