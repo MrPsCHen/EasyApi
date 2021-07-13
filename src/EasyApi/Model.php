@@ -210,11 +210,8 @@ class Model
 
 
             if (isset($param[$table->getPrimary()])) {
-                    $this->error_message = '缺少参数，参数';
-                    return false;
-                }
-                foreach ($param as $key =>$val){
 
+                foreach ($param as $key =>$val){
                     if(!isset($this->full_field[$key]))unset($param[$key]);
                 }
                 $this->cursor->whereOr($this->_decorate($this->cursor_where_or));
@@ -229,6 +226,7 @@ class Model
                 $this->Last_Insert_Id = $this->cursor->getLastInsID();
             }
             return $result>0;
+
         }catch (\Exception $e){
             switch ($e->getCode()){
                 case 10501:
