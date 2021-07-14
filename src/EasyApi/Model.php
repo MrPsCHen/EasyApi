@@ -779,7 +779,7 @@ class Model
             $list[] = $key;
         }
         foreach ($param as $key => $val){
-            if(is_array($val))$param[$key] = implode($value);
+            if(is_array($val))$param[$key] = $val;
             if(is_array($val) && !in_array($val[0],$list)){
                 unset($param[$key]);
             }else if(!is_numeric($key) && !in_array($key,$list)){
